@@ -1,8 +1,12 @@
 # wunshot
 
+[READ THE DOCS](https://lotap.github.io/wunshot/)
+
 _A user platform you can copy and paste._ 👤
 
 A collection of schemas and functions focused on providing the best starting point for your user data. Built on top of [Drizzle ORM](https://orm.drizzle.team/docs/overview). Free. Open-source. **Use this to build your backend _without_ a service.**
+
+[GET STARTED](https://lotap.github.io/wunshot/getting-started/prerequisites)
 
 > 🚧 **Caution:** This is a work in progress. Follow along with updates on my [Twitter/X](https://x.com/lotap_dev) 🚧
 
