@@ -1,0 +1,84 @@
+---
+title: Prerequisites
+---
+
+> _Everything you need before you can start using wunshot effectively. The rest of the docs will assume you have this set up already._
+
+## A Typescript App
+
+You can set up a typescript project with any major framework.
+
+- [Next.js](https://nextjs.org/docs/pages/building-your-application/configuring/typescript)
+- [Remix](https://remix.run/docs/en/main/guides/vite#typescript-integration)
+- [TanStack Start](https://tanstack.com/start/latest)
+- [Astro](https://docs.astro.build/en/guides/typescript/)
+- [Nuxt](https://nuxt.com/docs/guide/concepts/typescript)
+- [SolidStart](https://docs.solidjs.com/configuration/typescript)
+
+You are not limited to frontend frameworks or frameworks at all. [See how to run typescript with Node.js](https://nodejs.org/en/learn/typescript/introduction)
+
+:::note
+You can also use plain ol' javascript if you prefer, but the provided code will be written for typescript.
+:::
+
+## A database (PostgreSQL)
+
+You must have access to a database. If you don't, you can start with the [PostgreSQL Download Page](https://www.postgresql.org/download/) or [Detailed installation guides](https://wiki.postgresql.org/wiki/Detailed_installation_guides) or see [How to Use the Postgres Docker Official Image](https://www.docker.com/blog/how-to-use-the-postgres-docker-official-image/).
+
+There are numerous hosting/cloud options for PostgreSQL beyond the scope of this guide.
+
+Once your database is set up, you should have connection URL that looks something like:
+
+```txt "USER" "PASSWORD" "HOST" "PORT" "DATABASE_NAME" "PARAM_NAME" "PARAM_VALUE"
+postgresql://USER:PASSWORD@HOST:PORT/DATABASE_NAME?PARAM_NAME=PARAM_VALUE
+```
+
+[Read more about connection URIs](https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING-URIS)
+
+Add your connection URL to your project's `.env` file or secrets manager.
+
+:::note
+Other RDBMS options can be used, but are not officially supported. You will need to handle the translation of the schemas into your database of choice.
+:::
+
+### (Optional) Set postgres timezone to UTC
+
+Setting the database timezone to UTC probably won't cause any headaches, but might save you from a few down the road.
+
+```txt title="postgresql.conf"
+timezone = 'UTC'
+```
+
+If you don't have access to `postgresql.conf`, you can try setting it like this:
+
+```sql
+ALTER DATABASE your_db_name SET timezone TO 'UTC';
+SELECT pg_reload_conf();
+```
+
+:::note
+`GMT` is effectively the same as `UTC`
+:::
+
+:::tip
+You can get the current timezone of your database by running:
+
+```sql
+SHOW timezone;
+```
+
+:::
+
+## (Optional) `server-only`
+
+If you are using react server components, you should use the [server-only](https://www.npmjs.com/package/server-only) package. This will prevent the client from being able to import the module.
+
+```sh
+npm i server-only
+```
+
+:::tip
+You may also want to use the `experimental_taintUniqueValue` function to prevent leaking secrets.
+
+[Read more](https://react.dev/reference/react/experimental_taintUniqueValue#using-server-only-and-taintuniquevalue-to-prevent-leaking-secrets)
+:::

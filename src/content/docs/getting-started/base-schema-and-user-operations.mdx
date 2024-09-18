@@ -1,0 +1,154 @@
+---
+title: Base Schema & User Operations
+---
+
+:::caution
+From this point on, the documentation will assume you have read and completed all of the steps on the [installation page](/getting-started/installation).
+:::
+
+## Create the base schema
+
+| Column     | Type        | Description                        |
+| ---------- | ----------- | ---------------------------------- |
+| id         | uuid        | The user's unique id               |
+| created_at | timestamptz | The time the user was created      |
+| updated_at | timestamptz | The time the user was last updated |
+
+Paste into `@/db/schema.ts`
+
+```ts title="@/db/schema.ts"
+import "server-only"; // <- if you are using react server components
+
+import { pgTable, timestamp, uuid } from "drizzle-orm/pg-core";
+
+export const users = pgTable("users", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  createdAt: timestamp("created_at", { precision: 3, withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { precision: 3, withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+```
+
+<details>
+  <summary>Why use a uuid as the primary key?</summary>
+
+      A sequential id would be faster and take less space. However, it opens a [potential attack vector](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html#ensure-lookup-ids-are-not-accessible-even-when-guessed-or-cannot-be-tampered-with) for a bad actor to guess the ids of specific users.
+
+      Using postgres built-in functionality has some advantages over third-party random id generators.
+
+        - any application that connects to the database will automatically use the same random id generator
+
+        - the uuid format can be enforced by the database
+
+        - uuidv4 is ubiquitous, so any connected applications will likely be able to generate ids on-the-fly if they need to
+
+      Overall, it's a good compromise between performance, security, and consistency.
+
+</details>
+<details>
+  <summary>Why use `{precision: 3, withTimezone: true}`?</summary>
+
+    **precision: 3**: The javascript Date object only supports [up to milliseconds](https://developer.mozilla.org/en-US/docs/Web/API/Performance_API/High_precision_timing#performance.now_vs._date.now) (3), so the default postgres [precision of microseconds](https://www.postgresql.org/docs/current/datatype-datetime.html#DATATYPE-DATETIME-INPUT) (6) is more resolution than most apps will ever use. The `timestamptz` type will use [8 bytes](https://www.postgresql.org/docs/current/datatype-datetime.html#DATATYPE-DATETIME) regardless of resolution, but rounding may [lead to smaller backups after compression.](https://dba.stackexchange.com/a/298981)
+
+    **withTimezone: true**: Postgres stores a `TIMESTAMP WITH TIME ZONE` as essentially a UTC time with an offset. It can be thought of as a moment in time. Whereas a `TIMESTAMP WITHOUT TIME ZONE` ignores any timezone indication on the input. It's like reading the time on a wall clock. [It's generally considered](https://wiki.postgresql.org/wiki/Don%27t_Do_This#Don.27t_use_timestamp_.28without_time_zone.29) [best practice to](https://www.timescale.com/blog/best-practices-for-picking-postgresql-data-types/) [always use `timestamptz`](https://justatheory.com/2012/04/postgres-use-timestamptz/).
+
+    If you can guarantee that all of your server and database instances are in the same timezone, then there probably won't be any practical difference between `timestamp` and `timestamptz`. However, there is no real advantage to using `timestamp`, [they both occupy 8 bytes](https://www.postgresql.org/docs/current/datatype-datetime.html#DATATYPE-DATETIME). ![That's free real estate](../../../assets/free-real-estate.gif)
+
+</details>
+
+## Add CRUD operations
+
+Paste into `@/db/operations/user.ts`
+
+```ts title="@/db/operations/user.ts"
+import "server-only"; // <- if you are using react server components
+
+import { eq, sql } from "drizzle-orm";
+import { db } from "@/db";
+import { users } from "@/db/schema";
+
+export type NewUser = typeof users.$inferInsert;
+
+const preparedInsertUser = db.insert(users).values({}).prepare("insert_user");
+
+export async function insertUser() {
+  return preparedInsertUser.execute();
+}
+
+const preparedSelectUser = db
+  .select()
+  .from(users)
+  .where(eq(users.id, sql.placeholder("id")))
+  .limit(1)
+  .prepare("select_user");
+
+export async function selectUser(id: string) {
+  const [user] = await preparedSelectUser.execute({ id });
+  if (!user) throw new Error("User not found");
+  return user;
+}
+
+const preparedUpdateUser = db
+  .update(users)
+  .set({ updatedAt: sql`NOW()` })
+  .where(eq(users.id, sql.placeholder("id")))
+  .prepare("update_user");
+
+export async function updateUser(id: string) {
+  return preparedUpdateUser.execute({ id });
+}
+
+const preparedDeleteUser = db
+  .delete(users)
+  .where(eq(users.id, sql.placeholder("id")))
+  .prepare("delete_user");
+
+export async function deleteUser(id: string) {
+  return preparedDeleteUser.execute({ id });
+}
+```
+
+<details>
+<summary>
+  Why use `` sql`NOW()` ``?
+</summary>
+
+    This will ensure that the timestamp is consistent and created using the database's timezone.
+
+    If `new Date()` was used instead, then the timestamp created would be in the local timezone of the server where the function was called. That could lead to inconsistency and unexpected behavior, especially if the database is in a different timezone.
+
+</details>
+
+:::note
+I am still working out what the best way to handle prepared statements is. These functions/exports are subject to change rapidly and should not be considered stable.
+:::
+
+:::caution[For Supabase users]
+You may need to change modes for prepared statements to work. [Read more about connections on Supabase](https://supabase.com/docs/guides/database/connecting-to-postgres#connection-pooler)
+:::
+
+## Generate and apply migrations
+
+Generate `.sql` files based on the schema with:
+
+```sh
+npm run db:generate
+```
+
+Once the migrations are generated, you can apply them to your database with:
+
+```sh
+npm run db:migrate
+```
+
+:::tip
+All-in-one go:
+
+```sh
+npm run db:generate && npm run db:migrate
+```
+
+:::

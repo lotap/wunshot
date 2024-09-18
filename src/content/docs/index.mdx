@@ -1,46 +1,298 @@
 ---
-title: Welcome to Starlight
-description: Get started building your docs site with Starlight.
-template: splash
-hero:
-  title: |
-    Welcome to Starlight with
-    <span
-      class="font-black text-transparent
-        bg-clip-text bg-gradient-to-b
-        from-accent-700 to-accent-400
-        dark:from-accent-500 dark:to-accent-200"
-    >
-      Tailwind
-    </span>
-  tagline: Congrats on setting up a new Starlight project!
-  image:
-    file: ../../assets/houston.webp
-  actions:
-    - text: Example Guide
-      link: /guides/example/
-      icon: right-arrow
-    - text: Read the Starlight docs
-      link: https://starlight.astro.build
-      icon: external
-      variant: minimal
+title: Introduction
+description: A user platform you can copy and paste
 ---
 
-import { Card, CardGrid } from '@astrojs/starlight/components';
+import {
+  Card,
+  CardGrid,
+  LinkButton,
+  LinkCard,
+} from "@astrojs/starlight/components";
 
-## Next steps
+:::caution
+🚧 🚧 🚧
 
-<CardGrid stagger>
-	<Card title="Update content" icon="pencil">
-		Edit `src/content/docs/index.mdx` to see this page change.
-	</Card>
-	<Card title="Add new content" icon="add-document">
-		Add Markdown or MDX files to `src/content/docs` to create new pages.
-	</Card>
-	<Card title="Configure your site" icon="setting">
-		Edit your `sidebar` and other config in `astro.config.mjs`.
-	</Card>
-	<Card title="Read the docs" icon="open-book">
-		Learn more in [the Starlight Docs](https://starlight.astro.build/).
-	</Card>
+Project is a work in progress. Basic functionality is still being built. Proceed at your own risk.
+
+🚧 🚧 🚧
+:::
+
+> _a user platform you can copy and paste._ 👤
+
+wunshot is a deconstructed backend as a service. It provides lightweight scaffolding for creating a unified source of truth for your user data. Best practices are baked-in so you spend less time choosing tools and fighting frameworks and more time building.
+
+It is **not a library**. You do not install it as a dependency.
+
+It **is a collection of simple schemas and functions**. Copy the features you want, paste them into your project, and customize them to your needs.
+
+<LinkCard title="Try it out" href="/getting-started/prerequisites" />
+
+<CardGrid>
+  <Card title="Built on Drizzle ORM">
+    The schemas are built on [Drizzle ORM for
+    PostgreSQL](https://orm.drizzle.team/docs/get-started-postgresql). The
+    underlying principles and patterns are universal, and can be applied to any
+    ORM and RDBMS.
+  </Card>
+  <Card title="Serverless first">
+    Everything in wunshot is designed to work within the tight constraints of
+    serverless platforms. That means you can start in whatever server
+    environment you prefer and switch between them without worrying about
+    compatibility.
+  </Card>
 </CardGrid>
+
+:::note
+Special thanks to [shadcn/ui](https://ui.shadcn.com/), which provided the inspiration for wunshot. It aims to do for user management what shadcn/ui does for frontends.
+:::
+
+## FAQ
+
+_Or questions I imagine someone might ask if I had users_ 😭
+
+<details>
+  <summary>Won't AI take care of this for me?</summary>
+
+    **Maybe.**
+
+    Currently, [LLM output can't be entirely trusted](https://hackernoon.com/why-cant-ai-count-the-number-of-rs-in-the-word-strawberry) - especially with something as vital to your application as user data.
+
+    A future release will include a CLI that LLMs could use to create schemas.
+
+    A future release may also integrate the schemas directly into a [RAG](https://en.wikipedia.org/wiki/Retrieval-augmented_generation) for LLMs to use.
+
+</details>
+
+<details>
+  <summary>Why copy-pasteable?</summary>
+
+    The needs for every app will be different. It's much easier to paste some code into your project and modify it to your needs than it is to learn (and possibly battle with) a framework or to build a platform from scratch.
+
+</details>
+
+<details>
+  <summary>What frameworks are supported?</summary>
+
+    **Any framework that can use typescript in a server environment.**
+
+    	That includes: Next.js, Remix, TanStack Start, Astro, Nuxt, SolidStart, and more.
+
+    You can also use wunshot in Node.js directly without any framework at all.
+
+</details>
+
+<details>
+  <summary>Is it production ready?</summary>
+
+    **Your mileage may vary;**
+
+    wunshot is still in early development. It hasn't been thoroughly battle-tested.
+
+    It's unlikely that the schemas or functions will "break," but I'm mainly a frontend developer, so it's possible there are unforseen consequences due to the structure of the schemas.
+
+    Also see the **Does it scale?** section below.
+
+    :::tip
+    If wunshot has/causes any bugs or if you think that a schema or function could be better, please [open an issue](https://github.com/lotap/wunshot/issues/new).
+    :::
+
+</details>
+
+<details>
+  <summary>Does it scale?</summary>
+
+    **Yesn't.**
+
+    The limiting factor of wunshot is PostgreSQL. So if PostgreSQL can handle it, wunshot should too.
+
+    That means for basic user management, wunshot should scale well. But if features like analytics and event tracking are added, they may not scale as well. At that time, other options like [ClickHouse](https://clickhouse.com/docs/en/intro) will be evaluated.
+
+    Overall, the goal of wunshot is to provide you with the best generic jumping-off point possible. Part of that goal is making it just as easy to transition off of wunshot as it is to start with. So if it doesn't meet your scaling needs, you can switch to a platform that does without too many headaches.
+
+</details>
+
+<details>
+  <summary>What's the difference between wunshot and a BaaS</summary>
+
+    Baas platforms and wunshot have many of the same goals, but go about them in different ways.
+
+    BaaS platforms are designed to abstract the complexities of the database and user management away. In contrast, wunshot puts the database front-and-center, so you always remain in control of your data.
+
+    BaaS platforms limit and charge you based on the number of users you have, wunshot only limits your users by how many PostgreSQL can handle (it's a lot).
+
+</details>
+
+<details>
+  <summary>Can I use wunshot with a BaaS</summary>
+
+    **Yes (within reason).**
+
+    There are many ways you could incorporate wunshot with a BaaS. They are beyond the scope of the documentation though, so you will be responsible for modifying the functions and schemas to your needs. Also, beware of the possibility of accidentally duplicating data.
+
+</details>
+
+<details>
+  <summary>What's the difference between wunshot and a SaaS starter kit/boiler plate?</summary>
+
+    Saas starter kits and wunshot both can help you launch your product quickly, but they have some key differences:
+
+    - Starter kits have a UI, wunshot is only focused on backend functionality.
+
+    - Starter kits offload user management to third-party services, wunshot keeps you in control of your database and user data.
+
+    - Starter kits may be filled with bloat or unnecessary features, wunshot lets you copy and paste only the functionality you need.
+
+</details>
+
+<details>
+  <summary>Can I use wunshot with my existing database?</summary>
+
+    **Yes (within reason).**
+
+    The project is built using [Drizzle ORM](https://orm.drizzle.team/) and [PostgreSQL](https://www.postgresql.org/). If you are not using those tools, work will be required to "translate" the schemas into your ORM/RDBMS of choice.
+
+    Copy and paste the functionality you want and tweak it to your needs. The more your app deviates from the provided schemas, the more you will need to tweak.
+
+</details>
+
+<details>
+  <summary>Why Drizzle ORM?</summary>
+
+    [Drizzle ORM](https://orm.drizzle.team/) aligns well with the goals of wunshot.
+      - It works on serverless platforms (and anywhere else)
+      - It has a relatively small filesize, so it can be used without worrying about space constraints on workers or edge functions
+      - It is explicit about how it effects the database. There aren't any table or column names that are magically created
+      - It's type-safe
+      - It provides a solution for data migrations via [Drizzle Kit](https://orm.drizzle.team/kit-docs/overview)
+
+</details>
+
+<details>
+  <summary>Will my ORM be supported?</summary>
+
+    Other ORMs such as [Prisma](https://www.prisma.io/docs/orm/overview/introduction/what-is-prisma), [TypeORM](https://typeorm.io/), or [Kysely](https://kysely.dev/docs/intro) may be supported in the future, but are not the current focus.
+
+</details>
+
+<details>
+  <summary>Why PostgreSQL?</summary>
+
+    [PostgreSQL](https://www.postgresql.org/) is popular, flexible, and performant.
+
+    `array` and `enum` types are supported natively. That's particularly helpful for features like RBAC - role values can be stored in the `users` table, instead of requiring an additional relationship table.
+
+</details>
+
+<details>
+  <summary>Will my RDBMS be supported?</summary>
+
+    Other SQL RDBMSs such as [MySQL](https://www.mysql.com/) or [SQLite](https://www.sqlite.org/index.html) may be supported in the future, but are not the current focus.
+
+    NoSQL databases such as [MongoDB](https://www.mongodb.com/) may also be supported in the even further future.
+
+</details>
+
+<details>
+  <summary>Typescript?</summary>
+
+    **Yes!**
+
+    You can use plain ol' javascript if you prefer, but the provided code will be written in [typescript](https://www.typescriptlang.org/).
+
+</details>
+
+<details>
+  <summary>Can I use wunshot in my project?</summary>
+
+    **Yes!**
+
+    wunshot is [MIT licensed](https://github.com/lotap/wunshot/blob/main/LICENSE), so you can use it in any project, including commercial ones.
+
+    Please let [me](https://x.com/lotap_dev) know or [leave a star](https://github.com/lotap/wunshot) if you do!
+
+</details>
+
+## Motivation
+
+> _I was upsetti with SaaS spaghetti_ 🍝
+
+Pretty much every web application needs some combination of: an email sign-up/newsletter, user auth, role-based access, analytics, order management, and customer support. The central data point for each of those functionalities is the user. Yet connecting them often comes at the cost of added complexity and/or vendor lock-in.
+
+Right now the options are:
+
+1. Research and select features from a mind-numbing array of SaaS services, many of which have overlapping features. (And then spend extra time trying to synchronize data between them)
+
+2. Use a BaaS that likely abstracts the database away, making custom functionality or migration off the platform difficult
+
+3. Build a platform from scratch, which requires a lot of knowledge, a lot of work, and a lot of time
+
+Using wunshot gives you **the control of building from scratch, but with best-practice guardrails for speed and modularity for flexibility**.
+
+## Roadmap
+
+> _More like: Highway to the Danger Zone_ 😎
+
+- [ ] Auth
+  - [ ] Sessions
+  - [ ] JWT/JWE
+  - [ ] Cookies
+  - [ ] CSRF Protection
+  - [ ] Magic Code
+  - [ ] Username/Password
+  - [ ] OAuth
+  - [ ] MFA/2FA
+- [ ] RBAC
+
+### Backlog
+
+_Feature creep? Never heard of it_ 🧟
+
+If a feature is listed here, it means I think it's good enough to be remembered, but I don't have any specific implementation plans for it. They are not in any meaningful order and are not guaranteed to be delivered.
+
+- [ ] CLI
+- [ ] Dashboard
+- [ ] Analytics/Tracking
+  - [ ] ClickHouse
+- [ ] Support/Ticketing System
+- [ ] Feature Flags
+- [ ] Consent Management
+- [ ] Marketing Emails
+- [ ] Validation w/ Zod
+- [ ] Payment Processor Integrations
+  - [ ] Stripe
+  - [ ] Paddle
+  - [ ] Lemon Squeezy
+  - [ ] PayPal
+  - [ ] Apple Pay
+  - [ ] Google Pay
+  - [ ] Square
+  - [ ] Portal
+  - [ ] GoCardless
+  - [ ] Shopify
+  - [ ] Venmo for Business
+  - [ ] Amazon Pay
+- [ ] Billing guides/modules
+  - [ ] subscriptions
+  - [ ] metered billing
+  - [ ] per seat billing
+  - [ ] credits based billing
+  - [ ] one-off payments
+- [ ] B2B Tools
+  - [ ] Single Sign On
+  - [ ] Multi-tenancy
+- [ ] Social Media Integrations
+  - [ ] Tracking Pixels
+  - [ ] Unified inbox
+- [ ] Framework Guides
+  - [ ] Next.js
+  - [ ] Remix/React Router
+  - [ ] Astro
+  - [ ] TanStack Start
+  - [ ] Nuxt
+  - [ ] SolidStart
+  - [ ] Waku
+- [ ] Logging/Error Handling
+- [ ] Testing with Playwright
+- [ ] Broader ORM support
+- [ ] Broader RDBMS support
