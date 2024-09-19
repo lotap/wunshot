@@ -3,10 +3,12 @@ title: Base Schema & User Operations
 ---
 
 :::caution
-From this point on, the documentation will assume you have read and completed all of the steps on the [installation page](/wunshot/getting-started/installation).
+From this point on, the documentation will assume you have read and completed all of the steps on the [installation page](/getting-started/installation).
 :::
 
 ## Create the base schema
+
+> This is the base `users` table that all other schemas will be based on. It won't have much functionality until features from other sections are added.
 
 | Column     | Type        | Description                        |
 | ---------- | ----------- | ---------------------------------- |
@@ -60,6 +62,10 @@ export const users = pgTable("users", {
 </details>
 
 ## Add CRUD operations
+
+:::danger
+I am still working out what the best way to handle prepared statements is. These functions/exports are subject to change rapidly and should not be considered stable.
+:::
 
 Paste into `@/db/operations/user.ts`
 
@@ -121,10 +127,6 @@ export async function deleteUser(id: string) {
     If `new Date()` was used instead, then the timestamp created would be in the local timezone of the server where the function was called. That could lead to inconsistency and unexpected behavior, especially if the database is in a different timezone.
 
 </details>
-
-:::warning
-I am still working out what the best way to handle prepared statements is. These functions/exports are subject to change rapidly and should not be considered stable.
-:::
 
 :::caution[For Supabase users]
 You may need to change modes for prepared statements to work. [Read more about connections on Supabase](https://supabase.com/docs/guides/database/connecting-to-postgres#connection-pooler)
