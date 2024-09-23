@@ -9,7 +9,7 @@ A session is a collection of user data that persists across uses of your applica
 **wunshot provides two main approaches for storing session data: cookies and your database.**
 
 :::note[Browser `sessionStorage` API]
-The HTML5 [`sessionStorage` API](https://developer.mozilla.org/en-US/docs/Web/API/Window/sessionStorage) is not a good fit for storing session data for most apps. The data stored there is erased when the tab is closed.
+The HTML5 [`sessionStorage` API](https://developer.mozilla.org/en-US/docs/Web/API/Window/sessionStorage) is **not** a good fit for storing authentication data for most apps. The data stored there is erased when the tab is closed.
 
 The browser also has the ability to write to `sessionStorage` directly, so information stored there should not be trusted.
 :::
@@ -69,7 +69,7 @@ For all intents and purposes, key-value storage has the same security tradeoffs 
 
 The main difference between using a database and a key-value store is that a database must be structured ahead of time. A key-value store is more flexible, and can be structured on the fly.
 
-Depending on your setup, a KV solution may be more efficient than a database. However, it may also add complexity when it comes to defining a single source of truth for user data if you already have a database.
+Depending on your setup, a KV solution may be more efficient than a database. However, it may also add complexity when it comes to defining a single source of truth for user data.
 :::
 
 ### Hybrid
