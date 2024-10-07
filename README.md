@@ -24,4 +24,6 @@ If you encounter any bugs or have any feature requests, please [open an issue](h
 
 ## License
 
-Licensed under the [MIT license](https://github.com/lotap/wunshot/blob/main/LICENSE).
+Software licensed under the [FSL-1.1-MIT license](https://github.com/lotap/wunshot/blob/trunk/LICENSE.md).
+
+The license does not apply to the name "wunshot" or any associated wordmarks, logos, etc.
