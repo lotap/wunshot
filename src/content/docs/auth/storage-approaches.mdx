@@ -1,0 +1,83 @@
+---
+title: Storage Approaches
+---
+
+## Understanding the options
+
+A session is a collection of user data that persists across uses of your application.
+
+**wunshot provides two main approaches for storing session data: cookies and your database.**
+
+:::note[Browser `sessionStorage` API]
+The HTML5 [`sessionStorage` API](https://developer.mozilla.org/en-US/docs/Web/API/Window/sessionStorage) is not a good fit for storing session data for most apps. The data stored there is erased when the tab is closed.
+
+The browser also has the ability to write to `sessionStorage` directly, so information stored there should not be trusted.
+:::
+
+### Cookie(s)
+
+Cookie storage keeps the data on an [`HttpOnly` cookie](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie#httponly).
+
+You can think of this sort of like your application issuing driver's licenses to your users:
+
+1. Your app gives a "license" (the cookie) to a user.
+2. When the user returns, they present the license back.
+
+The problem is that the "bouncer" (your app) is blind. It scans the license to test if it's legitimate and then implicitly trusts all the information on it.
+
+That means:
+
+- If a bad actor steals or copies the license, they can impersonate the user.
+- If the user is abusive, there's not a simple way to revoke the license.
+
+Cookies also have some other limitations to be aware of:
+
+- Cookies are limited to about 4KB of data.
+  - This can be mitigated in a variety of methods, but each of them has their own tradeoffs.
+- Since the data is stored on the client, it can eventually be decrypted. **Cookies are not a good place to store sensitive information.**
+
+:::note[JWT/JWE]
+
+Many apps choose to format the cookie data as a [JWT](https://jwt.io/introduction) or JWE (JWT with encrypted content). This is a standardized format for the shape of data. It is useful if your app needs to interact with other apps that use JWT. However, **not all cookie sessions need to be JWTs or JWEs.**
+:::
+
+### Database
+
+Storing the session in a database also relies on [`HttpOnly` cookies](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie#httponly). But in this case, the cookie only contains an id for the session. The actual session data is stored in a database row.
+
+You can think of it like your app issuing Social Security Numbers:
+
+1. Your app gives the SSN to a user.
+2. When the user returns, they present the SSN back.
+3. Your app looks up the information associated with the SSN. It's like your app's version of a credit check.
+
+This approach offers some advantages:
+
+- Your app can reject users based on the information retrieved
+- Information can be stored in the database without worrying about the space limitations of cookies
+
+But there are also some tradeoffs to be aware of:
+
+- Retrieving information from the database can be expensive in time and bandwidth.
+
+  - Without thoughtful design, a bad actor could use those lookups as an attack vector - either for (D)DOS or to drive up the costs of running the app.
+
+- Identity theft remains a risk. If a bad actor steals or copies the session id, they can impersonate that user until the session is invalidated in the database.
+
+:::note[Key-Value Storage]
+For all intents and purposes, key-value storage has the same security tradeoffs as a database.
+
+The main difference between using a database and a key-value store is that a database must be structured ahead of time. A key-value store is more flexible, and can be structured on the fly.
+
+Depending on your setup, a KV solution may be more efficient than a database. However, it may also add complexity when it comes to defining a single source of truth for user data if you already have a database.
+:::
+
+### Hybrid
+
+- A cookie is used for unauthenticated users.
+  - The cookie stores an `authenticated` boolean flag.
+- Database is used post-authentication.
+- Information may be stored in the cookie post-authentication if it:
+
+  1. Doesn't need to be secure
+  2. Doesn't need to be synchronized across devices
