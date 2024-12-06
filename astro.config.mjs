@@ -34,7 +34,7 @@ export default defineConfig({
           items: [
             { label: "Storage Approaches", slug: "auth/storage-approaches" },
             // { label: "Sessions", slug: "auth/sessions" },
-            // { label: "Username & Password", slug: "auth/username-password" },
+            { label: "Username & Password", slug: "auth/username-password" },
             // { label: "Magic Code", slug: "auth/magic-code" },
             // { label: "OAuth", slug: "auth/oauth" },
           ],
