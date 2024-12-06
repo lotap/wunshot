@@ -30,7 +30,7 @@ export default defineConfig({
         },
         {
           label: "Auth",
-          badge: "Soon",
+          badge: { text: "In Development", variant: "caution" },
           items: [
             { label: "Storage Approaches", slug: "auth/storage-approaches" },
             // { label: "Sessions", slug: "auth/sessions" },
