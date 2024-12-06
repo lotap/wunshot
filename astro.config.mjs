@@ -10,6 +10,7 @@ export default defineConfig({
   integrations: [
     starlight({
       title: "wunshot",
+      favicon: "/favicon-32x32.png",
       social: {
         github: "https://github.com/lotap/wunshot",
       },
