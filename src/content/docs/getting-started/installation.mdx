@@ -35,17 +35,19 @@ You can organize your files however you want, but the documentation will assume 
 - app/
 - db
   - migrations/
-  - operations
-    - user.ts
-    - ...
+  - users
+    - queries.ts
+    - schema.ts
   - schema.ts
   - index.ts
+- ops
+  - ...
 - drizzle.config.ts
 
 </FileTree>
 
 ```sh title="from your project root"
-mkdir -p db/operations && touch db/index.ts db/schema.ts db/operations/user.ts drizzle.config.ts
+mkdir -p db/users && mkdir ops && touch db/index.ts db/schema.ts db/users/queries.ts db/users/schema.ts drizzle.config.ts
 ```
 
 ## Set up Drizzle ORM

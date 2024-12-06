@@ -6,19 +6,21 @@ title: Base Schema & User Operations
 From this point on, the documentation will assume you have read and completed all of the steps on the [installation page](/getting-started/installation).
 :::
 
-## Create the base schema
+## Model
 
-> This is the base `users` table that all other schemas will be based on. It won't have much functionality until features from other sections are added.
+This is the base `users` table that all other schemas will be based on. It won't have much functionality until features from other sections are added.
 
-| Column     | Type        | Description                        |
-| ---------- | ----------- | ---------------------------------- |
-| id         | uuid        | The user's unique id               |
-| created_at | timestamptz | The time the user was created      |
-| updated_at | timestamptz | The time the user was last updated |
+| Column       | Type          | Description                        |
+| ------------ | ------------- | ---------------------------------- |
+| `id`         | `uuid`        | The user's unique id               |
+| `created_at` | `timestamptz` | The time the user was created      |
+| `updated_at` | `timestamptz` | The time the user was last updated |
 
-Paste into `@/db/schema.ts`
+## Create the base `users` schema
 
-```ts title="@/db/schema.ts"
+Paste into `@/db/users/schema.ts`
+
+```ts title="@/db/users/schema.ts"
 import "server-only"; // <- if you are using react server components
 
 import { pgTable, timestamp, uuid } from "drizzle-orm/pg-core";
@@ -61,15 +63,21 @@ export const users = pgTable("users", {
 
 </details>
 
-## Add CRUD operations
+### Add `users` schema to barrel file
+
+```ts title="@/db/schema.ts"
+export { users } from "./users/schema";
+```
+
+## Add CRUD queries
 
 :::danger
 I am still working out what the best way to handle prepared statements is. These functions/exports are subject to change rapidly and should not be considered stable.
 :::
 
-Paste into `@/db/operations/user.ts`
+Paste into `@/db/users/queries.ts`
 
-```ts title="@/db/operations/user.ts"
+```ts title="@/db/users/queries.ts"
 import "server-only"; // <- if you are using react server components
 
 import { eq, sql } from "drizzle-orm";
@@ -80,8 +88,10 @@ export type NewUser = typeof users.$inferInsert;
 
 const preparedInsertUser = db.insert(users).values({}).prepare("insert_user");
 
-export async function insertUser() {
-  return preparedInsertUser.execute();
+export async function insertUser(
+  user: Omit<NewUser, "id" | "createdAt" | "updatedAt">,
+) {
+  return preparedInsertUser.execute(user);
 }
 
 const preparedSelectUser = db
