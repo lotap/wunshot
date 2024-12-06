@@ -5,8 +5,9 @@ import tailwind from "@astrojs/tailwind";
 
 // https://astro.build/config
 export default defineConfig({
-  site: "https://lotap.github.io/",
-  base: "/wunshot/",
+  // site: "https://lotap.github.io/",
+  // base: "/wunshot/",
+  site: "https://www.wunshot.io/",
   integrations: [
     starlight({
       title: "wunshot",
