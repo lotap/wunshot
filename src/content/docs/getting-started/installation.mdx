@@ -1,0 +1,295 @@
+---
+title: Installation
+---
+
+import { FileTree } from "@astrojs/starlight/components";
+import { Steps } from "@astrojs/starlight/components";
+
+:::caution
+If this is your first time using wunshot or you are starting from scratch, you should read the [Prerequisites](/getting-started/prerequisites) section first.
+:::
+
+If you already have a Drizzle ORM set up, you may be able to skip directly to [Base Schema & User Operations](/getting-started/base-schema-and-user-operations).
+
+## Set up typescript aliasing
+
+Alias `@` to the root of your project.
+
+```json title="tsconfig.json" {4-6}
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    }
+  }
+}
+```
+
+## Create your folder structure
+
+You can organize your files however you want, but the documentation will assume the following:
+
+<FileTree>
+
+- app/
+- db
+  - migrations/
+  - operations
+    - user.ts
+    - ...
+  - schema.ts
+  - index.ts
+- drizzle.config.ts
+
+</FileTree>
+
+```sh title="from your project root"
+mkdir -p db/operations && touch db/index.ts db/schema.ts db/operations/user.ts drizzle.config.ts
+```
+
+## Set up Drizzle ORM
+
+Follow the installation instructions for PostgreSQL on the [Drizzle ORM website](https://orm.drizzle.team/docs/get-started-postgresql) for detailed instructions.
+
+<Steps>
+
+1.  Select your driver(s)
+
+    Select a driver based on your database provider or hosting setup. Some providers may use their own drivers, while others may rely on popular community packages like [node-postgres](https://node-postgres.com/) or [Postgres.js](https://github.com/porsager/postgres).
+
+    See [Drizzle ORM - PostgreSQL](https://orm.drizzle.team/docs/get-started-postgresql) for more information about supported ways to connect.
+
+    :::tip
+    You may want to use multiple drivers to handle different types of connections. Popular packages use TCP for connectivity, but others use websockets or http. ([Cloudflare workers support tcp connections](https://developers.cloudflare.com/workers/tutorials/postgres/), but not all serverless platforms do.) Some drivers also distinguish between pooled and non-pooled connections, while others handle it internally.
+    :::
+
+2.  Install the packages with your package manager of choice
+
+    ```sh
+    	npm i drizzle-orm # and your chosen driver(s)
+    ```
+
+3.  Set up your database connection
+
+    :::danger
+    **Not all connection types support transactions.** Make sure to check your database setup.
+
+    If you are only using a connection type that does not support transactions, you may not be able to use some features of wunshot.
+    :::
+
+    :::caution
+    **The rest of the documentation will refer to the drizzle object as `dbTxn` when transactions are required and `db` otherwise.**
+    :::
+
+    Here's an **example** exporting multiple drizzle objects using [Neon](https://neon.tech/docs/introduction) drivers. **Your setup may be different.**
+
+    ```ts title="@/db/index.ts"
+    import { drizzle as drizzleHttp } from "drizzle-orm/neon-http";
+    import { drizzle as drizzleWebSocket } from "drizzle-orm/neon-serverless";
+    import { neon, Client } from "@neondatabase/serverless";
+
+    import * as schema from "@/db/schema";
+
+    const { DB_POOLED_URL } = process.env;
+    if (!DB_POOLED_URL) throw new Error("Missing db url");
+
+    export const db = drizzleHttp(neon(DB_POOLED_URL), { schema });
+
+    export const client = new Client({ connectionString: DB_POOLED_URL });
+    export const dbTxn = drizzleWebSocket(client, { schema });
+    ```
+
+    <details>
+
+    <summary>Why `DB_POOLED_URL` instead of `DB_URL`?</summary>
+
+    [Neon](https://neon.tech/docs/introduction) supports PgBounder through a `-pooled` endpoint. [That is their recommended way to handle most connections](https://neon.tech/docs/connect/choose-connection#next-choose-your-connection-type-direct-or-pooled). [Read more](https://neon.tech/docs/connect/connection-pooling#connection-pooling).
+
+    For other providers or hosting setups, you can probably ignore that and just use `DB_URL`
+
+    </details>
+
+    If you are **_only_** using a connection type that supports transactions, you can create a simple alias like this:
+
+    ```ts title="@/db/index.ts"
+    //...
+    export const dbTxn = db;
+    ```
+
+    Or you can just use the `db` object directly whenever the documentation calls for `dbTxn`.
+
+    :::tip
+    **Depending on your database setup, you may want to export multiple drizzle objects to handle different types of connections**
+
+    Generally speaking, using http is faster for single queries and using websocket or tcp is faster after an initial long connection time. But, that's not always the case.
+
+    The [creator](https://pilcrow.vercel.app/) of [Lucia](https://lucia-auth.com/) has a [great article](https://pilcrow.vercel.app/blog/serverless-database-latency) on the topic. (Note that the article is over a year old, so the specific benchmark data is probably stale)
+
+    ```ts title="@/db/index.ts"
+    import { drizzle as drizzleHttp } from "drizzle-orm/your-http-driver";
+    import { drizzle as drizzleWebSocket } from "drizzle-orm/your-websocket-driver";
+    import { drizzle as drizzleTcp } from "drizzle-orm/your-tcp-driver";
+    //...
+    export const dbHttp = drizzleHttp(...);
+    export const dbWebSocket = drizzleWebSocket(...);
+    export const dbTcp = drizzleTcp(...);
+    ```
+
+    The documentation will only refer to `db` and `dbTxn`, but you can use `dbHttp`, `dbWebSocket`, `dbTcp`, or whatever else as needed (as long as you use a connection that supports transactions for `dbTxn`).
+
+    :::
+
+</Steps>
+
+## Install & Configure Drizzle Kit
+
+Install [`drizzle-kit`](https://www.npmjs.com/package/drizzle-kit) into your `devDependencies` with your package manager of choice.
+
+```sh
+  npm i -D drizzle-kit
+```
+
+Then configure it with `drizzle.config.ts`
+
+```ts title="drizzle.config.ts"
+import { defineConfig } from "drizzle-kit";
+
+const { DB_URL } = process.env;
+if (!DB_URL) throw new Error("Missing db url");
+
+export default defineConfig({
+  dialect: "postgresql",
+  out: "./db/migrations",
+  schema: "./db/schema.ts",
+  dbCredentials: { url: DB_URL },
+  // Print all statements
+  verbose: true,
+  // Always ask for confirmation
+  strict: true,
+});
+```
+
+See the [Drizzle Kit Config Reference](https://orm.drizzle.team/kit-docs/config-reference) for more information.
+
+:::note[For Neon users]
+[Neon](https://neon.tech/docs/introduction) docs [recommend using direct connections for migrations](https://neon.tech/docs/connect/choose-connection#next-choose-your-connection-type-direct-or-pooled).
+
+You can use something like `DB_DIRECT_URL` instead of `DB_URL` in that case.
+:::
+
+### Add `package.json` scripts for migrations
+
+```json title="package.json" ins={5-6}
+{
+  ...
+  "scripts": {
+    ...
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate"
+  }
+  ...
+}
+```
+
+### Accessing env variables
+
+Depending on your project setup, you may need to pass environment variables to drizzle-kit explicitly.
+
+If you try to run `npm run db:generate` and trigger the `Missing db url` error, then try one of the following solutions.
+
+:::caution[For Next.js users]
+Next.js uses `.env.local` instead of `.env` for local environment variables. Drizzle Kit does not automatically load `.env.local` at time of writing this.
+:::
+
+:::note
+I prefer CLI solutions over code editing for environment variables. Code shouldn't "care" about where the environment variables are coming from, imo.
+
+You can use something like `require("dotenv").config` in your `drizzle.config.ts` file, but I think editing the `package.json` scripts is a better solution in most cases.
+:::
+
+#### Use a secrets manager
+
+##### [Infisical](https://infisical.com/docs/documentation/getting-started/introduction)
+
+<Steps>
+
+1.  Create a project on [Infisical](https://infisical.com/docs/documentation/getting-started/introduction)
+
+2.  Add a `DB_URL` variable to your project
+
+3.  Follow the [Infisical CLI installation instructions](https://infisical.com/docs/cli/overview) to get it set up on your machine
+
+4.  Login to Infisical on your machine
+
+    ```sh
+      infisical login
+    ```
+
+5.  Initialize Infisical in your app
+
+    ```sh title="from your project root"
+      infisical init
+    ```
+
+6.  Update the `package.json` scripts to use Infisical
+
+    ```json title="package.json" {5-6}
+    {
+    ...
+    "scripts": {
+      ...
+      "db:generate": "infisical run -- drizzle-kit generate",
+      "db:migrate": "infisical run -- drizzle-kit migrate"
+    }
+    ...
+    }
+    ```
+
+</Steps>
+
+Read the [Infisical Quickstart Guide](https://infisical.com/docs/cli/usage) for more detailed instructions and configuration options.
+
+#### Use `.env` file(s)
+
+Add your `DB_URL` to `.env.local`:
+
+```txt
+DB_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE_NAME?PARAM_NAME=PARAM_VALUE"
+```
+
+##### [`dotenv-cli`](https://www.npmjs.com/package/dotenv-cli)
+
+```sh
+  npm i -D dotenv-cli
+```
+
+```json title="package.json" {5-6}
+{
+  ...
+  "scripts": {
+    ...
+    "db:generate": "dotenv -e .env.local -- drizzle-kit generate",
+    "db:migrate": "dotenv -e .env.local -- drizzle-kit migrate"
+  }
+  ...
+}
+```
+
+##### [`dotenvx`](https://www.npmjs.com/package/@dotenvx/dotenvx)
+
+```sh
+  npm i -D @dotenvx/dotenvx
+```
+
+```json title="package.json" {5-6}
+{
+  ...
+  "scripts": {
+    ...
+    "db:generate": "dotenvx run -f .env.local -- drizzle-kit generate",
+    "db:migrate": "dotenvx run -f .env.local -- drizzle-kit migrate"
+  }
+  ...
+}
+```
