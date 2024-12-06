@@ -18,11 +18,11 @@ export default defineConfig({
           label: "Getting Started",
           items: [
             { label: "Introduction", slug: "index" },
-            { label: "Prerequisites", slug: "/getting-started/prerequisites" },
-            { label: "Installation", slug: "/getting-started/installation" },
+            { label: "Prerequisites", slug: "getting-started/prerequisites" },
+            { label: "Installation", slug: "getting-started/installation" },
             {
               label: "Base Schema & User Operations",
-              slug: "/getting-started/base-schema-and-user-operations",
+              slug: "getting-started/base-schema-and-user-operations",
             },
           ],
         },
