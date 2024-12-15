@@ -4,9 +4,9 @@ title: Storage Approaches
 
 ## Understanding the options
 
-A session is a collection of user data that persists across uses of your application.
+A session is a collection of user data that persists over the use of your application. Session authorization relies on the stored information to determine the level of access that user should have.
 
-**wunshot provides two main approaches for storing session data: cookies and your database.**
+**wunshot provides two main approaches for storing session auth data: cookies and your database.**
 
 :::note[Browser `sessionStorage` API]
 The HTML5 [`sessionStorage` API](https://developer.mozilla.org/en-US/docs/Web/API/Window/sessionStorage) is **not** a good fit for storing authentication data for most apps. The data stored there is erased when the tab is closed.
@@ -60,7 +60,7 @@ But there are also some tradeoffs to be aware of:
 
 - Retrieving information from the database can be expensive in time and bandwidth.
 
-  - Without thoughtful design, a bad actor could use those lookups as an attack vector - either for (D)DOS or to drive up the costs of running the app.
+  - A bad actor could use those lookups as an attack vector - either for (D)DOS or to drive up the costs of running the app.
 
 - Identity theft remains a risk. If a bad actor steals or copies the session id, they can impersonate that user until the session is invalidated in the database.
 
@@ -74,10 +74,12 @@ Depending on your setup, a KV solution may be more efficient than a database. Ho
 
 ### Hybrid
 
-- A cookie is used for unauthenticated users.
-  - The cookie stores an `authenticated` boolean flag.
-- Database is used post-authentication.
-- Information may be stored in the cookie post-authentication if it:
+:::note
+This will be the assumed default moving forward with wunshot. I will probably rewrite this page to make it more clear.
+:::
 
-  1. Doesn't need to be secure
-  2. Doesn't need to be synchronized across devices
+A hybrid approach entails using a database for an initial authentication, but trusting short-lived cookies for subsequent authentication done in the same tab/window.
+
+This approach maximizes flexibility while minimizing the amount of requests to the database. It's similar conceptually to [`stale-while-revalidate`](https://web.dev/articles/stale-while-revalidate#whats_it_mean), but it using cookies for the cache.
+
+It's also similar to a standard cookies-only approach. The key difference is that it gives you the ability to force revalidation in certain areas of your app. That means a high level of security can be achieved without sacrificing convenience for the user.
