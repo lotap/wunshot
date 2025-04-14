@@ -2,6 +2,10 @@
 title: Base Schema & User Operations
 ---
 
+:::danger
+This page is out of date and will be updated to reflect the current conventions soon.
+:::
+
 :::caution
 From this point on, the documentation will assume you have read and completed all of the steps on the [installation page](/getting-started/installation).
 :::
@@ -21,8 +25,6 @@ This is the base `users` table that all other schemas will be based on. It won't
 Paste into `@/db/users/schema.ts`
 
 ```ts title="@/db/users/schema.ts"
-import "server-only"; // <- if you are using react server components
-
 import { pgTable, timestamp, uuid } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
@@ -63,11 +65,16 @@ export const users = pgTable("users", {
 
 </details>
 
-### Add `users` schema to barrel file
+{/* ### Add `users` schema to index file
 
-```ts title="@/db/schema.ts"
-export { users } from "./users/schema";
-```
+```ts title="@/db/index.ts" del={4} ins={5}
+//...
+import import * as users from "./users/schema";
+
+const schema = {}
+const schema = {users}
+//...
+``` */}
 
 ## Add CRUD queries
 
@@ -82,7 +89,7 @@ import "server-only"; // <- if you are using react server components
 
 import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { users } from "@/db/users/schema";
 
 export type NewUser = typeof users.$inferInsert;
 

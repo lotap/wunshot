@@ -1,12 +1,12 @@
 # wunshot
 
-[READ THE DOCS](https://www.wunshot.io/)
+[READ THE DOCS](https://wunshot.dev/)
 
 _A user platform you can copy and paste._ 👤
 
 A collection of schemas and functions designed to help you build secure, efficient, feature-filled backends faster. Built on top of [Drizzle ORM](https://orm.drizzle.team/docs/overview). Free. Open-source. **Use this to build your backend _without_ a service.**
 
-[GET STARTED](https://www.wunshot.io/getting-started/prerequisites)
+[GET STARTED](https://wunshot.dev/getting-started/)
 
 > 🚧 **Caution:** This is a work in progress. Follow along with updates on my [Twitter/X](https://x.com/lotap_dev) 🚧
 

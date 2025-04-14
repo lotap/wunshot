@@ -10,19 +10,21 @@
     "astro": "astro"
   },
   "dependencies": {
-    "@astrojs/check": "^0.9.3",
-    "@astrojs/starlight": "^0.27.1",
-    "@astrojs/starlight-tailwind": "^2.0.3",
-    "@astrojs/tailwind": "^5.1.0",
-    "@fontsource-variable/jetbrains-mono": "^5.1.0",
+    "@astrojs/check": "^0.9.4",
+    "@astrojs/starlight": "^0.32.5",
+    "@astrojs/starlight-tailwind": "^3.0.1",
+    "@astrojs/tailwind": "^6.0.2",
     "@fontsource-variable/mulish": "^5.0.21",
     "@fontsource-variable/rubik": "^5.1.0",
-    "astro": "^4.15.3",
+    "astro": "^5.5.6",
+    "playwright": "^1.51.1",
+    "rehype-mermaid": "^3.0.0",
     "sharp": "^0.32.5",
     "tailwindcss": "^3.4.4",
     "typescript": "^5.6.2"
   },
   "devDependencies": {
+    "eslint-plugin-mdx": "^3.3.1",
     "prettier": "^3.3.3",
     "prettier-plugin-astro": "^0.14.1"
   }

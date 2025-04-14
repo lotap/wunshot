@@ -1,31 +1,30 @@
-.header {
-  background-color: var(--sl-color-bg);
-  border: 0;
+@font-face {
+  font-family: 'Commit Mono Variable';
+  src: url('/fonts/commit-mono-variable.woff2') format('woff2');
+  font-weight: 200 700;
+  font-display: swap;
+  font-feature-settings: "ss03" on, "ss04" on, "ss05" on, "cv06" on, "cv10" on;
 }
 
-.header .social-icons::after {
-  border: 0;
-}
+:root {
+  --sl-nav-pad-y: 0.5rem;
+  --sl-nav-height: 3.25rem;
+  --sl-color-hairline: oklch(from var(--sl-color-accent-high) l c h / 0.15);
+  --sl-color-hairline-hover: oklch(
+    from var(--sl-color-accent-high) l c h / 0.6
+  );
+  --color-black-trans: oklch(from var(--sl-color-black) l c h / 0.7);
+  --color-bg-trans: oklch(from var(--sl-color-bg) l c h / 0.7);
+  --color--overlay: oklch(from var(--sl-color-accent) l c h / 0.2);
+  --__sl-font: var(--__sl-font-mono);
+  --__font-display: "Mulish Variable", var(--__sl-font);
 
-.sidebar-pane {
-  background-color: var(--sl-color-bg);
-  border: 0;
-}
-
-nav {
-  background-color: var(--sl-color-bg);
-}
-
-.content-panel + .content-panel {
-  border: 0;
-}
-
-.right-sidebar {
-  border: 0;
+  --sl-color-bg-nav: var(--color-bg-trans) !important;
 }
 
 .site-title,
 .title,
+.group-label,
 .sl-markdown-content :is(h1, h2, h3, h4, h5, h6):not(:where(.not-content *)),
 h1,
 h2,
@@ -33,10 +32,152 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: "Mulish Variable", var(--__sl-font);
-  font-weight: 700;
+  text-transform: uppercase;
 }
 
-.site-title {
-  font-weight: 500;
+.site-title,
+[data-page-title] {
+  font-family: var(--__font-display);
+  font-weight: 600;
+  letter-spacing: -0.023em;
+  text-transform: none;
+}
+
+.group-label .large,
+#starlight__on-this-page {
+  font-size: var(--sl-text-xs);
+  text-transform: uppercase;
+}
+
+.page .main-frame .right-sidebar-container .right-sidebar nav,
+.page > .header {
+  -webkit-backdrop-filter: blur(0.5rem);
+  backdrop-filter: blur(0.5rem);
+  border-bottom: 1px solid var(--sl-color-hairline);
+}
+
+.header .social-icons::after {
+  border: 0;
+}
+
+site-search > button[data-open-modal] {
+  background-color: var(--color-black-trans);
+  border: 1px solid var(--sl-color-hairline);
+  height: 2.25rem;
+}
+
+site-search > button[data-open-modal]:hover {
+  border: 1px solid var(--sl-color-hairline-hover);
+}
+
+site-search > button[data-open-modal] > kbd {
+  background-color: var(--color-bg-trans);
+  border: 1px solid var(--sl-color-hairline);
+}
+
+.page .main-frame .right-sidebar-container .right-sidebar nav .toggle,
+.page .main-frame .right-sidebar-container .right-sidebar nav .dropdown {
+  background-color: var(--color-black-trans);
+  border: 1px solid var(--sl-color-hairline);
+}
+
+
+
+/* .page .main-frame .right-sidebar-container .right-sidebar nav .dropdown {
+  background-color: var(--color-black-trans);
+  border: 1px solid var(--sl-color-hairline);
+} */
+
+[data-has-hero] .page {
+  background: linear-gradient(215deg, var(--color--overlay), transparent 40%),
+    radial-gradient(var(--color--overlay), transparent 40%) no-repeat -60vw -40vh /
+      105vw 200vh,
+    radial-gradient(var(--color--overlay), transparent 65%) no-repeat 50%
+      calc(100% + 20rem) / 60rem 30rem;
+}
+
+[data-has-hero] .hero {
+  grid-template-columns: auto;
+  padding: 1.5rem 0 3rem 0;
+}
+
+.hero .copy .tagline {
+  max-width: 100%;
+}
+
+.sidebar-pane {
+  background-color: var(--sl-color-bg);
+  border-right: 1px solid var(--sl-color-hairline);
+}
+
+.pagination-links {
+  background-color: var(--color-black-trans);
+}
+
+.pagination-links a {
+  border: 2px solid var(--sl-color-hairline);
+  box-shadow: none;
+}
+
+.pagination-links a:hover {
+  border-color: var(--sl-color-hairline-hover);
+}
+
+.card {
+  background-color: var(--color-black-trans);
+  box-shadow: none;
+}
+
+.flowchart .clusters .cluster-label .nodeLabel p {
+  font-family: var(--__font-display);
+  font-size: var(--sl-text-sm);
+  font-weight: 600;
+  color: var(--sl-color-text-accent);
+}
+
+.flowchart .cluster rect {
+  fill: var(--sl-color-bg) !important;
+  stroke: var(--sl-color-hairline) !important;
+}
+
+.flowchart .edgePaths path {
+  stroke: var(--sl-color-accent-high) !important;
+}
+
+.flowchart marker.marker {
+  fill: var(--sl-color-accent-high) !important;
+  stroke: var(--sl-color-accent-high) !important;
+}
+
+.edgeLabel,
+.edgeLabel p {
+  background-color: var(--sl-color-accent-high) !important;
+  color: var(--sl-color-accent-low) !important;
+  font-family: var(--sl-font);
+  font-size: var(--sl-text-sm);
+}
+
+.flowchart .nodes .node.default .label-container,
+.flowchart .nodes .node.default .label-container path {
+  fill: var(--sl-color-accent-low) !important;
+  stroke: var(--sl-color-accent-high) !important;
+}
+
+.flowchart .nodes .node.default .label .nodeLabel p {
+  font-family: var(--sl-font);
+  font-size: var(--sl-text-sm);
+  color: var(--sl-color-text);
+}
+
+.sl-markdown-content h2 {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--sl-color-hairline);
+}
+
+.sl-link-card {
+  box-shadow: none;
+}
+
+table td code {
+  overflow-wrap: normal;
 }
