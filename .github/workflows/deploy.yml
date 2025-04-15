@@ -21,7 +21,7 @@ jobs:
       - name: Checkout your repository using git
         uses: actions/checkout@v4
       - name: Install Playwright Browsers # Necessary for creating the mermaid charts
-        run: npx playwright install
+        run: npx playwright install --with-deps chromium
       - name: Install, build, and upload your site
         uses: withastro/action@v4
         with:
