@@ -14,9 +14,13 @@ export default defineConfig({
     starlight({
       title: "wunshot",
       favicon: "/1f35d.svg",
-      social: {
-        github: "https://github.com/lotap/wunshot",
-      },
+      social: [
+        {
+          icon: "github",
+          label: "GitHub",
+          href: "https://github.com/lotap/wunshot",
+        },
+      ],
       sidebar: [
         {
           label: "Getting Started",
