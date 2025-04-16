@@ -45,6 +45,7 @@ export default defineConfig({
             variant: "caution",
           },
           items: [
+            { label: "Overview", slug: "auth" },
             { label: "Storage Approaches", slug: "auth/storage-approaches" },
             // { label: "Sessions", slug: "auth/sessions" },
             { label: "Username & Password", slug: "auth/username-password" },

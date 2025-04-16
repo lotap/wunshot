@@ -59,11 +59,11 @@ view@{shape: 'curv-trap'}
 user@{shape: circle}
 
 subgraph wunshot
-    model <--> operation
+  model <--> operation
 end
 
 subgraph your frontend framework
-    router <--> view
+  router <--> view
 end
 
 operation <--> router
@@ -86,14 +86,14 @@ router@{shape: 'lean-r'}
 view@{shape: 'curv-trap'}
 
 subgraph your frontend framework
-    view <==http req/res==> router
+  view <==http req/res==> router
 end
 
 subgraph wunshot
-    ops <==> queries <==> db
-    ops <-.-> validations <-.-> queries
-    schemas --migrations--> db
-    queries -.- schemas -.- validations
+  ops <==> queries <==> db
+  ops <-.-> validations <-.-> queries
+  schemas --migrations--> db
+  queries -.- schemas -.- validations
 end
 
 router <==> ops
@@ -151,29 +151,29 @@ By convention, wunshot supports "soft deletes" through archive tables to ensure 
 
 - **Reliable Foreign Key Enforcement:**
 
-        Relations can be managed explicitly by foreign keys and thus enforced at the database layer instead of the ORM layer
+  Relations can be managed explicitly by foreign keys and thus enforced at the database layer instead of the ORM layer
 
 - **Cleaner Queries:**
 
-        Queries don't need to filter with `is_deleted = false`
+  Queries don't need to filter with `is_deleted = false`
 
 - **Distinct Data State:**
 
-        Data is clear, consistent, and easy to reason about
+  Data is clear, consistent, and easy to reason about
 
 **Tradeoffs:**
 
 - **Increased schema complexity:**
 
-        Most related tables will require foreign key columns referencing both the "live" table (e.g., userId) and the corresponding archive table (e.g., usersArchiveId)
+  Most related tables will require foreign key columns referencing both the "live" table (e.g., userId) and the corresponding archive table (e.g., usersArchiveId)
 
 - **Migration Overhead:**
 
-        When a table schema is updated, the archive table will also need to update and run a migration
+  When a table schema is updated, the archive table will also need to update and run a migration
 
 - **Performance Costs:**
 
-        Archiving an item requires at least one delete and one insert plus updates for each foreign key relation and a transaction to wrap it all
+  Archiving an item requires at least one delete and one insert plus updates for each foreign key relation and a transaction to wrap it all
 
 To address those disadvantages, wunshot handles most of the upfront schema complexity for you and [drizzle-kit keeps the migrations manageable](https://orm.drizzle.team/docs/migrations).
 
@@ -283,10 +283,10 @@ ops -.input.-> validations -.validated input.-> ops
 validations --validation error--x ops
 
 subgraph models
-        queries -.input.-> validations -.validated input.-> queries
-        validations --validation error--x queries
-        queries -.type info .-schemas
-        validations -.type info .- schemas
+  queries -.input.-> validations -.validated input.-> queries
+  validations --validation error--x queries
+  queries -.type info .-schemas
+  validations -.type info .- schemas
 end
 
 queries --validated input--> db ==response data==> queries
@@ -409,9 +409,9 @@ const operationFooStmt = ({
   qx: QueryExecutor;
   label?: string
 }) => {
-    qx.operation()
-    ... // code for insert / select / update using `sql.placeholder()`
-    .prepare(`operation_foo_${label}`)
+  qx.operation()
+  ... // code for insert / select / update using `sql.placeholder()`
+  .prepare(`operation_foo_${label}`)
 }
 
 const operationFooDefault = operationFooStmt({ qx: db });
@@ -757,7 +757,7 @@ export const db = drizzle({
 
 - Handle most processing on the server rather than relying on database functions. This keeps the code more portable and servers are easier to scale horizontally
 
-        - One exception is for creating dates. Dates should be created using database functions like `now()`. This circumvents inconsistencies between timezones or with latency between the server and database.
+  - One exception is for creating dates. Dates should be created using database functions like `now()`. This circumvents inconsistencies between timezones or with latency between the server and database.
 
 - Validate then database. Prevent unnecessary db connections by catching malformed data early
 
