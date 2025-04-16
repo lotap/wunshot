@@ -24,6 +24,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 'lts/*'
+          check-latest: true
           cache: 'npm'
           cache-dependency-path: 'package-lock.json'
       - name: Install Playwright Browsers # Necessary for creating the mermaid charts
