@@ -23,7 +23,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 'lts'
+          node-version: 'lts/latest'
           cache: 'npm'
           cache-dependency-path: 'package-lock.json'
       - name: Install Playwright Browsers # Necessary for creating the mermaid charts
@@ -32,7 +32,7 @@ jobs:
         uses: withastro/action@v4
         with:
           path: . # The root location of your Astro project inside the repository. (optional)
-          node-version: 'lts'
+          node-version: 'lts/latest'
           package-manager: npm@latest
 
   deploy:
