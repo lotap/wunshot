@@ -1,5 +1,5 @@
 ---
-title: Universal Ops
+title: Auth Ops
 ---
 
 ### Sign Up (Create User)
@@ -54,7 +54,7 @@ flowchart
 
 validateInput
 findUser
-verifyPassword
+verifyUser
 insertSession
 generateRefreshToken
 generateAccessToken
@@ -82,11 +82,11 @@ subgraph returns
   returnFailure
 end
 
-validateInput -- valid --> findUser --> verifyPassword --> transaction --> returnSuccess
+validateInput -- valid --> findUser --> verifyUser --> transaction --> returnSuccess
 
 validateInput -. invalid .-x throwError
 findUser -. not found .-x throwError
-verifyPassword -. wrong password .-x throwError
+verifyUser -. wrong credential .-x throwError
 
 throwError --> catchError --> returnFailure
 
@@ -185,20 +185,18 @@ throwError --> catchError --> returnFailure
 ```mermaid
 flowchart
 
-verifyRefreshToken
-findSession
-verifyNonce
+decryptAccessToken
+
 bulkArchiveSessions
 
 throwError
 catchError
 returnFailure
 
-verifyRefreshToken -- valid --> findSession --> verifyNonce --> bulkArchiveSessions --> returnSuccess
+decryptAccessToken -- valid --> bulkArchiveSessions --> returnSuccess
 
-verifyRefreshToken -. invalid .-x throwError
-findSession -. not found .-x throwError
-verifyNonce -. wrong nonce .-x throwError
+decryptAccessToken -. invalid .-x throwError
+bulkArchiveSessions -. no sessions found .-x throwError
 
 throwError --> catchError --> returnFailure
 

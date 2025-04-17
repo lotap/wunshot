@@ -41,7 +41,7 @@ db -.- users & sessions
 
 ## Fundamentals of Auth
 
-### What is a Session?
+### What Is a Session?
 
 A session maintains a user’s authentication state between uses of your web app.
 
@@ -57,11 +57,11 @@ Sessions in wunshot are stored in the database. [Read more about the methodology
 | ------------ | ------------ | -------------------------------------------------------------------- |
 | `id`         | `uuid`       | Primary Key                                                          |
 | `user_id`    | `uuid`       | Foreign Key for users table `id`                                     |
-| `nonce_hash` | `text`       | [Hashed random value used for verification](#what-is-a-refreshtoken) |
+| `nonce_hash` | `text`       | [Hashed random value used for verification](#nonces) |
 | `expires_at` | `timestampz` | When the session expires                                             |
 | ...          | ...          | Other standard columns like `created_at`, `updated_at`, etc.         |
 
-### What is an accessToken?
+### What Is an `accessToken`?
 
 An `accessToken` is a short-lived token that grants access to a user's resources.
 It acts as a proof that the user has authenticated within the expiration window.
@@ -78,7 +78,7 @@ Applications should require a valid `accessToken` on protected actions and opera
 ---
 
 If the `accessToken` _is_ stolen and submitted by an attacker, it is a security breach.
-[There is no mechanism to revoke an `accessToken`](#why-use-a-database).
+[There is no mechanism to revoke an `accessToken`](#disadvantages).
 
 To reduce that risk, the token has a short expiration (15 minutes by default) that limits the time an attacker has to submit the token.
 
@@ -106,7 +106,7 @@ In the case of public user info, like a `username`, the payload can be used as a
 
 Ultimately, you will need to make a judgement call about what belongs in the `accessToken` payload.
 
-### What is a refreshToken?
+### What Is a `refreshToken`?
 
 The `refreshToken` is used to verify the session after the `accessToken` expires without requiring the user to sign in.
 
@@ -121,12 +121,16 @@ In wunshot, the `accessToken` is a JWT with this payload:
 
 Both of those fields are randomly generated, so the chances that an attacker could guess a matching pair is infinitesimally small.
 
+The JWT is signed to ensure authenticity at integrity of the data.
+
 #### Nonces
 
-The `nonce` is used like a "password" to the session.
+The `nonce` acts like a single-use "password" to the session.
 A hashed version of the `nonce` is stored in the sessions table.
 
 When a refresh request comes in, the value of the `nonce` from the `refreshToken` is verified against the stored `nonce_hash` column.
+
+The existing `nonce` should be replaced with a newly generated one after every successful verification.
 
 Hashing the values prevents an attacker from being able to hijack any users if the `sessions` table is leaked.
 
@@ -135,7 +139,7 @@ For example, if the `sign-out` function checked the `sessionId` field without ve
 
 > _In that example, the JWT signature would also have to have been cracked. But security is like an onion. **Layers**. Onions have layers. Security has layers. Onions have layers. You get it. They both have layers._
 
-### Why use Cookies?
+### Why Use Cookies?
 
 Cookies are the only form of persistent client-side storage that offer a way to prevent direct access via JavaScript.
 
@@ -156,11 +160,12 @@ And the [SameSite](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/H
 
 No other form of client-side storage offers those protections.
 
-#### disadvantages
+#### Disadvantages
 
 Skipping the database means that **the stored data is implicitly trusted**.
 Once the data is stored on the client, **there’s no mechanism to revoke it**.
 Any attempt to do so would require a trip to the database, defeating one of the benefits of the client-side storage in the first place.
+[There is a way to invalidate all tokens](#emergency-invalidation), but it should only be used as a last resort.
 
 Cookies are **limited to about 4kb of data** per cookie.
 Storing more than that limit requires advanced strategies to compress the data or split it between cookies.
@@ -188,22 +193,69 @@ Symmetric keys are generally fast and comparatively simple to implement.
 
 ---
 
-The main benefit of JWTs over other protocols is their wide adoption.
+The main benefit of JWTs over other protocols is its wide adoption.
 The `jose` library provides a standard set of functions and is used by many popular auth libraries.
 
 Other options such as [PASETO](https://paseto.io/) may fill this role in the future.
 
-### Why use a Database?
+#### Secret Rotation
+
+Secrets in wunshot use a combination of salting and hash-key derivation to keep secrets safe.
+That said, it is best practice to rotate secrets regularly to prevent unauthorized access.
+
+The signing functions in wunshot expect secrets to be in the format of:
+```ini
+TOKEN_SECRETS=`{id1}:{secret1},{id2}:{secret2},{id3}:{secret3}`
+```
+
+It is a comma separated list of `id:secret` pairs where `id` is a unique identifier (probably a UUIDv4) for the secret and `secret` is the actual secret value.
+
+Using a random id is recommended for a convenient way to prevent collisions without leaking any information about when the secret was generated.
+
+##### Emergency Invalidation
+
+Roatating secrets provides an opportunity to invalidate all tokens for a given secret.
+
+If you erase all of the existing secret pairs that a token uses then any tokens "in the wild" with old secrets will fail to validate.
+
+While not useful for a targeted attack, it could be used if an exploit affects multiple users.
+
+##### Implementation
+
+There is no explicit secret management or time limit implementation within wunshot.
+
+Here are some example functions you can use:
+```ts
+export function generateSecretPair() {
+  return `${crypto.randomUUID()}:${crypto
+    .randomBytes(32)
+    .toString("base64url")}`;
+}
+
+export function rotateSecrets(existingSecrets?: string) {
+  if (!existingSecrets)
+    return `${generateSecretPair()},${generateSecretPair()},${generateSecretPair()}`;
+  return existingSecrets
+    .split(",")
+    .slice(0, -1)
+    .splice(0, 0, generateSecretPair())
+    .toString();
+}
+```
+
+But you are expected to manage how those functions (or something similar) work within your app ecosystem.
+
+### Why Use a Database?
 
 Storing auth data in a database is a tried and tested method for session management.
 
-Any time the database is checked, the session can be validated or revoked.
+**Any time the database is checked, the session can be validated or revoked**.
 
 Revoking a session can be a useful tool for mitigating targeted attacks.
 For example, if a user reports a phishing attempt then all the sessions associated with that user can be archived and any existing `refreshToken` will fail.
 
 The disadvantage of database auth is that it requires a roundtrip to the database.
-So it can be slow, expensive, and hard to scale connections as the amount of users grows.
+So it can be slower, expensive, and hard to scale connections as the amount of users grows.
 
 ### Putting it All Together
 
@@ -213,7 +265,7 @@ Access tokens and refresh tokens are stored as JWTs in cookies to keep users sig
 
 The database is used to validate refreshes and to provide a mechanism for revoking access when needed.
 
-## Auth Flow In Depth
+## Auth Lifecycle
 
 ### Sign Up (Create User)
 
@@ -252,6 +304,12 @@ router --filtered responseData--> view
 signUpOp <--> users & sessions
 ```
 
+When a user signs up, new rows are added to the `users` and `sessions` tables and an `accessToken` and `refreshToken` are generated.
+
+The new user data and tokens are returned to the router.
+
+The router should then store the tokens in cookies and send any pertinent info to the view. (This part should be done within your frontend framework)
+
 ### Sign In
 
 ```mermaid
@@ -289,6 +347,12 @@ router --filtered responseData--> view
 signInOp <--> users & sessions
 ```
 
+Signing in uses mostly the same flow as signing up, but retrieves an existing `users` row instead of adding a new one.
+
+A new `accessToken` and `refreshToken` are generated for the new session and returned with the user data.
+
+The router should then store the tokens in cookies and send any pertinent info to the view. (This part should be done within your frontend framework)
+
 ### Verify Access
 
 ```mermaid
@@ -312,6 +376,15 @@ view --http req--> router --accessToken--> verifyAccessOp --tokenPayload--> rout
 
 cookies -.accessToken.-> router
 ```
+
+The `accessToken` can be used as proof that the user has authenticated.
+Once it is successfully decoded and validated, the user can be trusted to access the requested resource.
+
+Notably, **this process does not use a database connection**. It also does not generate a new session or token.
+
+The extracted payload data is returned to the router.
+
+No cookies should be set or changed by this operation.
 
 ### Refresh
 
@@ -344,6 +417,15 @@ cookies -.refreshToken.-> router -.fresh accessToken & refreshToken.-> cookies
 refreshAuthOp <--> sessions
 ```
 
+Refreshing is done with the `refreshToken` after the `accessToken` expires.
+
+The token is sent with a request and passes through multiple stages of validation.
+Then a fresh `refreshToken` and `accessToken` token are generated and the session is updated with a new `nonce_hash`. 
+
+The tokens and fields from the `accessToken` payload are returned to the router.
+
+The router should then store the tokens in cookies and send any pertinent info to the view. (This part should be done within your frontend framework)
+
 ### Sign Out
 
 ```mermaid
@@ -375,4 +457,53 @@ cookies -.refreshToken.-> router -.delete accessToken & refreshToken.-x cookies
 signOutOp <--> sessions
 ```
 
+Signing out archives the session in the database.
+
+Notably, the `refreshToken` is used instead of the `accessToken` for this functionality.
+That’s because the data in `refreshToken` payload already has all the session information necessary to complete the operation.
+It also means that signing out can be done after the `accessToken` has expired.
+
+A success returns an empty data object.
+
+The router should delete the tokens from cookies. (This part should be done within your frontend framework)
+
 ### Sign Out All
+
+```mermaid
+flowchart LR
+
+view@{shape: 'curv-trap'}
+router@{shape: lean-r}
+signOutAllOp@{shape: st-rect}
+cookies@{shape: win-pane}
+sessions@{shape: bow-rect}
+
+subgraph client
+  view -.- cookies
+end
+
+subgraph server
+  router
+  signOutAllOp
+end
+
+subgraph database
+  sessions
+end
+
+view --http POST--> router --accessToken--> signOutAllOp --success--> router --success res--> view
+
+cookies -.accessToken.-> router -.delete accessToken & refreshToken.-x cookies
+
+signOutAllOp <--> sessions
+```
+
+Sign out all will archive all the sessions associated with a user.
+
+It functions similarly to Sign Out, but uses the `accessToken` payload to provide the `userId`.
+
+A success returns an empty data object.
+
+The router should delete the tokens from cookies. (This part should be done within your frontend framework)
+
+{/* ## Protecting Actions */}
