@@ -17,7 +17,7 @@
     "@fontsource-variable/mulish": "^5.0.21",
     "@fontsource-variable/rubik": "^5.1.0",
     "astro": "^5.7.0",
-    "playwright": "latest",
+    "playwright": "^1.51.1",
     "rehype-mermaid": "^3.0.0",
     "sharp": "^0.32.5",
     "tailwindcss": "^3.4.4",

@@ -27,6 +27,8 @@ jobs:
           check-latest: true
           cache: 'npm'
           cache-dependency-path: 'package-lock.json'
+      - name: Install dependencies
+        run: npm ci
       - name: Install Playwright Browsers # Necessary for creating the mermaid charts
         run: npx playwright install --with-deps chromium
       - name: Install, build, and upload your site
