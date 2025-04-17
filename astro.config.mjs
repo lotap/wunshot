@@ -46,6 +46,7 @@ export default defineConfig({
           },
           items: [
             { label: "Overview", slug: "auth/overview" },
+            { label: "Universal Ops", slug: "auth/universal-ops" },
             { label: "Storage Approaches", slug: "auth/storage-approaches" },
             // { label: "Sessions", slug: "auth/sessions" },
             { label: "Username & Password", slug: "auth/username-password" },
