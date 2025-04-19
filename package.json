@@ -1,9 +1,18 @@
 {
-  "name": "@wunshot/turbo",
+  "name": "root",
   "private": true,
+  "author": {
+    "name": "lotap",
+    "url": "https://twitter.com/lotap_dev"
+  },
+  "license": "FSL-1.1-MIT",
   "scripts": {
     "build": "turbo run build",
+    "build:docs": "turbo run build --filter=docs",
+    "build:cli": "turbo run build --filter=wunshot",
     "dev": "turbo run dev",
+    "dev:docs": "turbo run dev --filter=docs",
+    "dev:cli": "turbo run dev --filter=wunshot",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types"

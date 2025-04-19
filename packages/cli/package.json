@@ -1,0 +1,46 @@
+{
+	"name": "wunshot",
+	"version": "0.0.1",
+	"description": "Add backend modules to your apps",
+	"keywords": [
+		"wunshot",
+		"tui",
+		"cli",
+		"backend",
+		"framework"
+	],
+	"author": {
+		"name": "lotap",
+		"url": "https://twitter.com/lotap_dev"
+	},
+	"license": "FSL-1.1-MIT",
+	"engines": {
+		"node": ">=22"
+	},
+	"type": "module",
+	"files": [
+		"./dist/*"
+	],
+	"bin": "./dist/index.js",
+	"scripts": {
+		"dev": "tsup --watch",
+		"build": "tsup",
+		"start": "node dist/index.js",
+		"typecheck": "tsc --noEmit",
+		"test": "vitest run"
+	},
+	"devDependencies": {
+		"@types/node": "^22.14.1",
+		"@types/react": "^19.1.2",
+		"ink-testing-library": "^4.0.0",
+		"prettier": "^3.5.3",
+		"tsup": "^8.4.0",
+		"typescript": "^5.8.3",
+		"vitest": "^3.1.1"
+	},
+	"dependencies": {
+		"commander": "^13.1.0",
+		"ink": "^5.2.0",
+		"react": "^18.3.1"
+	}
+}
