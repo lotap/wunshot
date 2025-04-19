@@ -1,6 +1,6 @@
 import React from 'react'
-import {Text} from 'ink'
+import BigText from 'ink-big-text'
 
 export function Apex() {
-	return <Text>Welcome to wunshot!</Text>
+	return <BigText text="wunshot" font="block" />
 }
