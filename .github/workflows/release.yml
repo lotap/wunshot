@@ -10,6 +10,10 @@ on:
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
+# Allows pushing tags to the repository
+permissions:
+  contents: write
+
 jobs:
   release:
     runs-on: ubuntu-latest
