@@ -26,6 +26,7 @@ jobs:
     steps:
       - name: Checkout your repository using git
         uses: actions/checkout@v4
+
       - name: Cache turbo build setup
         uses: actions/cache@v4
         with:
@@ -33,25 +34,34 @@ jobs:
           key: ${{ runner.os }}-turbo-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-turbo-
+
       - name: Install pnpm
         uses: pnpm/action-setup@v4
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 'lts/*'
           check-latest: true
           cache: 'pnpm'
+
       - name: Install dependencies
         run: pnpm install --recursive --filter=root --filter=docs
+
+      - name: Cache Playwright Browsers setup
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/pnpm-lock.yaml') }}
+
       - name: Install Playwright Browsers # Necessary for creating the mermaid charts
-        run: |
-            if [ ! -d ~/.cache/ms-playwright ]; then
-              pnpm dlx playwright install --with-deps chromium
-            else
-              echo "Playwright browsers already installed – skipping"
-            fi
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: pnpm dlx playwright install --with-deps chromium
+
       - name: Build astro static files w/ turbo
         run: pnpm build:docs
+
       - name: Upload static files as artifact
         id: deployment
         uses: actions/upload-pages-artifact@v3
