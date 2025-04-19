@@ -10,10 +10,6 @@ overrides:
 importers:
 
   .:
-    dependencies:
-      wunshot:
-        specifier: link:packages/cli
-        version: link:packages/cli
     devDependencies:
       prettier:
         specifier: ^3.5.3
