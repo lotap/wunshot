@@ -16,7 +16,7 @@
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
-    "publish:cli": "pnpm build:cli && pnpm changeset version && pnpm changeset publish"
+    "release:cli": "pnpm build:cli && pnpm changeset version && pnpm changeset publish"
   },
   "devDependencies": {
     "prettier": "^3.5.3",
