@@ -36,20 +36,12 @@ jobs:
           node-version: 'lts/*'
           check-latest: true
           cache: 'pnpm'
-          # cache-dependency-path: 'pnpm-lock.yaml'
       - name: Install dependencies
-        # run: pnpm install
         run: pnpm install --recursive --filter=root --filter=docs
       - name: Install Playwright Browsers # Necessary for creating the mermaid charts
         run: pnpm dlx playwright install --with-deps chromium
       - name: Build astro static files w/ turbo
         run: pnpm build:docs
-      # - name: Install, build, and upload your site
-      #   uses: withastro/action@v4
-      #   with:
-      #     path: './apps/docs' # The root location of your Astro project inside the repository. (optional)
-      #     node-version: 'lts/*'
-      #     # package-manager: pnpm@latest
       - name: Upload static files as artifact
         id: deployment
         uses: actions/upload-pages-artifact@v3
