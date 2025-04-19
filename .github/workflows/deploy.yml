@@ -9,6 +9,11 @@ on:
   # Allows you to run this workflow manually from the Actions tab on GitHub.
   workflow_dispatch:
 
+# Cancel any in‑flight docs builds for the same ref if a new one is pushed
+concurrency:
+  group: docs
+  cancel-in-progress: true
+
 # Allow this job to clone the repo and create a page deployment
 permissions:
   contents: read
@@ -25,7 +30,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .turbo
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          key: ${{ runner.os }}-turbo-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-turbo-
       - name: Install pnpm
@@ -39,7 +44,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --recursive --filter=root --filter=docs
       - name: Install Playwright Browsers # Necessary for creating the mermaid charts
-        run: pnpm dlx playwright install --with-deps chromium
+        run: |
+            if [ ! -d ~/.cache/ms-playwright ]; then
+              pnpm dlx playwright install --with-deps chromium
+            else
+              echo "Playwright browsers already installed – skipping"
+            fi
       - name: Build astro static files w/ turbo
         run: pnpm build:docs
       - name: Upload static files as artifact
