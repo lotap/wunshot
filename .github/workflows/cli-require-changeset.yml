@@ -1,4 +1,4 @@
-name: Require Changeset
+name: Require Changeset on CLI
 
 on:
   # Trigger the workflow every time you push to the `trunk` branch
