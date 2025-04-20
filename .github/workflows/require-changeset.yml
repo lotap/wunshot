@@ -32,4 +32,4 @@ jobs:
           cache: "pnpm"
 
       - name: Check for changeset
-        run: pnpm dlx @changesets/cli status --since=trunk
+        run: pnpm dlx @changesets/cli status --since=origin/trunk
