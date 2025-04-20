@@ -18,6 +18,9 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v4
 
+      - name: Fetch trunk branch
+        run: git fetch origin trunk
+
       - name: Install pnpm
         uses: pnpm/action-setup@v4
 
