@@ -1,5 +1,11 @@
 # wunshot
 
+## 0.0.4
+
+### Patch Changes
+
+- a650628: add basic command structure
+
 ## 0.0.3
 
 ### Patch Changes
