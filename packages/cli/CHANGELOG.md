@@ -1,5 +1,11 @@
 # wunshot
 
+## 0.0.5
+
+### Patch Changes
+
+- 1436380: add join command
+
 ## 0.0.4
 
 ### Patch Changes
