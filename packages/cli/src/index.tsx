@@ -6,6 +6,7 @@ import packageJson from '@/package.json' with {type: 'json'}
 
 import {addCommand} from '@/src/commands/add/command'
 import {initCommand} from '@/src/commands/init/command'
+import {joinCommand} from '@/src/commands/join/command'
 import {modelCommand} from '@/src/commands/model/command'
 import {newCommand} from '@/src/commands/new/command'
 
@@ -22,6 +23,7 @@ async function main() {
 		)
 		.addCommand(addCommand)
 		.addCommand(initCommand, {isDefault: true})
+		.addCommand(joinCommand)
 		.addCommand(modelCommand)
 		.addCommand(newCommand)
 
