@@ -10,6 +10,12 @@ A collection of schemas and functions designed to help you build secure, efficie
 
 > 🚧 **Caution:** This is a work in progress. Follow along with updates on my [Twitter/X](https://x.com/lotap_dev) 🚧
 
+## CLI
+
+The `wunshot` CLI is available on npm, but not yet functional.
+Development is ongoing.
+The source is available in this repo at `./packages/cli`
+
 ## Contributing
 
 If you encounter any bugs or have any feature requests, please [open an issue](https://github.com/lotap/wunshot/issues/new).
