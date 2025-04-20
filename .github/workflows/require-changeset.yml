@@ -1,0 +1,29 @@
+name: Require Changeset
+
+on:
+  # Trigger the workflow every time you push to the `trunk` branch
+  pull_request:
+    branches: [trunk]
+    paths: ["packages/cli/**"]
+  # Allows you to run this workflow manually from the Actions tab on GitHub.
+  workflow_dispatch:
+
+jobs:
+  require-changeset:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          check-latest: true
+          cache: "pnpm"
+
+      - name: Check for changeset
+        run: pnpm dlx @changesets/cli status --since=trunk
