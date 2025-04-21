@@ -14,7 +14,6 @@ export const secretCommand = new Command()
 		'number of pairs to generate (default: 3)',
 		'3',
 	)
-	// .argument('<names...>', 'the model(s) to generate a join for')
 	.action(({count}) => {
 		render(<SecretAction count={count} />)
 	})
