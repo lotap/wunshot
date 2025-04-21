@@ -1,5 +1,11 @@
 # wunshot
 
+## 0.0.8
+
+### Patch Changes
+
+- ad9beec: test workflow
+
 ## 0.0.7
 
 ### Patch Changes
