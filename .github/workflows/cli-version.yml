@@ -6,13 +6,17 @@ on:
     branches: [trunk]
     # filter to only run when changes are made to `./packages/cli/**`
     paths:
+      # only run on change to packages/cli
       - "packages/cli/**"
+        # exclude files auto-updated by a Versions PR to prevent this workflow from looping infinitely
+      - "!packages/cli/package.json"
+      - "!packages/cli/CHANGELOG.md"
   # Allows you to run this workflow manually from the Actions tab on GitHub.
   workflow_dispatch:
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
-# Allows pushing tags to the repository
+# Allows pushing commits/PRs to the repository
 permissions:
   contents: write
   pull-requests: write
