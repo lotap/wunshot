@@ -1,5 +1,11 @@
 # wunshot
 
+## 0.0.10
+
+### Patch Changes
+
+- bbd3387: test workflow
+
 ## 0.0.9
 
 ### Patch Changes
