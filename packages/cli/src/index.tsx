@@ -9,6 +9,7 @@ import {initCommand} from '@/src/commands/init/command'
 import {joinCommand} from '@/src/commands/join/command'
 import {modelCommand} from '@/src/commands/model/command'
 import {newCommand} from '@/src/commands/new/command'
+import {opCommand} from '@/src/commands/op/command'
 
 process.on('SIGINT', () => process.exit(0))
 process.on('SIGTERM', () => process.exit(0))
@@ -26,6 +27,7 @@ async function main() {
 		.addCommand(joinCommand)
 		.addCommand(modelCommand)
 		.addCommand(newCommand)
+		.addCommand(opCommand)
 
 	program.parse()
 }
