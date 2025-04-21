@@ -1,5 +1,11 @@
 # wunshot
 
+## 0.0.6
+
+### Patch Changes
+
+- a920495: new op command
+
 ## 0.0.5
 
 ### Patch Changes
