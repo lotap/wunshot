@@ -24,7 +24,7 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.CHANGESETS_GITHUB_FGPAT }}
+          persist-credentials: false # turn off GITHUB_TOKEN
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
