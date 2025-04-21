@@ -2,7 +2,7 @@
 import { defineConfig } from "astro/config";
 import rehypeMermaid from "rehype-mermaid";
 import starlight from "@astrojs/starlight";
-import tailwind from "@astrojs/tailwind";
+import tailwindcss from "@tailwindcss/vite";
 
 // https://astro.build/config
 export default defineConfig({
@@ -61,12 +61,14 @@ export default defineConfig({
       customCss: [
         "@fontsource-variable/mulish/wght.css",
         "@fontsource-variable/rubik/wght.css",
-        "./src/styles/tailwind.css",
+        "./src/styles/global.css",
         "./src/styles/custom.css",
       ],
     }),
-    tailwind({ applyBaseStyles: false }),
   ],
+  vite: {
+    plugins: [tailwindcss()],
+  },
   markdown: {
     rehypePlugins: [rehypeMermaid],
   },

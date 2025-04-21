@@ -1,11 +1,3 @@
-@font-face {
-  font-family: 'Commit Mono Variable';
-  src: url('/fonts/commit-mono-variable.woff2') format('woff2');
-  font-weight: 200 700;
-  font-display: swap;
-  font-feature-settings: "ss03" on, "ss04" on, "ss05" on, "cv06" on, "cv10" on;
-}
-
 :root {
   --sl-nav-pad-y: 0.5rem;
   --sl-nav-height: 3.25rem;
@@ -81,17 +73,11 @@ site-search > button[data-open-modal] > kbd {
   border: 1px solid var(--sl-color-hairline);
 }
 
-
-
-/* .page .main-frame .right-sidebar-container .right-sidebar nav .dropdown {
-  background-color: var(--color-black-trans);
-  border: 1px solid var(--sl-color-hairline);
-} */
-
 [data-has-hero] .page {
-  background: linear-gradient(215deg, var(--color--overlay), transparent 40%),
-    radial-gradient(var(--color--overlay), transparent 40%) no-repeat -60vw -40vh /
-      105vw 200vh,
+  background:
+    linear-gradient(215deg, var(--color--overlay), transparent 40%),
+    radial-gradient(var(--color--overlay), transparent 40%)
+      no-repeat -60vw -40vh / 105vw 200vh,
     radial-gradient(var(--color--overlay), transparent 65%) no-repeat 50%
       calc(100% + 20rem) / 60rem 30rem;
 }

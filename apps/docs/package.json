@@ -17,16 +17,16 @@
   },
   "dependencies": {
     "@astrojs/check": "^0.9.4",
-    "@astrojs/starlight": "^0.33.2",
-    "@astrojs/starlight-tailwind": "^3.0.1",
-    "@astrojs/tailwind": "^6.0.2",
+    "@astrojs/starlight": "^0.34.0",
+    "@astrojs/starlight-tailwind": "^4.0.1",
     "@fontsource-variable/mulish": "^5.0.21",
     "@fontsource-variable/rubik": "^5.1.0",
-    "astro": "^5.7.0",
+    "@tailwindcss/vite": "^4.1.4",
+    "astro": "^5.7.4",
     "playwright": "^1.51.1",
     "rehype-mermaid": "^3.0.0",
-    "sharp": "^0.32.6",
-    "tailwindcss": "^3.4.4",
+    "sharp": "^0.34.1",
+    "tailwindcss": "^4.1.4",
     "typescript": "^5.8.3"
   },
   "devDependencies": {
