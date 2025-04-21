@@ -7,3 +7,7 @@ This is the CLI for [wunshot](https://wunshot.dev/)
 Currently non-functional.
 
 In the future, this will be used for initializing projects, adding core modules, scaffolding new modules, checking diffs, and more
+
+## Releases
+
+Versions and Releases are managed using [changesets](https://github.com/changesets/changesets)
