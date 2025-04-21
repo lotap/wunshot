@@ -1,5 +1,11 @@
 # wunshot
 
+## 0.0.7
+
+### Patch Changes
+
+- 1a0c419: test-cli-workflow
+
 ## 0.0.6
 
 ### Patch Changes
