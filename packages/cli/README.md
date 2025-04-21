@@ -10,4 +10,4 @@ In the future, this will be used for initializing projects, adding core modules,
 
 ## Releases
 
-Versions and Releases are managed using [changesets](https://github.com/changesets/changesets)
+Versions and Releases are managed using [changesets](https://github.com/changesets/changesets).
