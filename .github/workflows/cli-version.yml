@@ -1,0 +1,43 @@
+name: Version CLI
+
+on:
+  # Trigger the workflow every time you push to the `trunk` branch
+  push:
+    branches: [trunk]
+    # filter to only run when changes are made to `./packages/cli/**`
+    paths:
+      - "packages/cli/**"
+  # Allows you to run this workflow manually from the Actions tab on GitHub.
+  workflow_dispatch:
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+# Allows pushing tags to the repository
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          check-latest: true
+          cache: "pnpm"
+
+      - name: Create Version Pull Request
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          version: pnpm dlx @changesets/cli version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
