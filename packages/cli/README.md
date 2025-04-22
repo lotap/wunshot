@@ -11,3 +11,7 @@ In the future, this will be used for initializing projects, adding core modules,
 ## Releases
 
 Versions and Releases are managed using [changesets](https://github.com/changesets/changesets)
+
+When a PR is merged into `trunk` with a changeset file, it will automatically trigger an additional PR with updates to the package version and changelog.
+
+When that Version PR is merged, it will trigger another workflow that publishes the package on npm.
