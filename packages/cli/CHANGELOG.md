@@ -1,5 +1,11 @@
 # wunshot
 
+## 0.0.11
+
+### Patch Changes
+
+- 6b78757: update cli readme with release process
+
 ## 0.0.10
 
 ### Patch Changes
