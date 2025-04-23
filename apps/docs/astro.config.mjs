@@ -29,11 +29,7 @@ export default defineConfig({
               slug: "getting-started/the-wunshot-way",
             },
             {
-              label: "Base User Model & Ops",
-              badge: {
-                text: "Deprecated - Updates Coming Soon",
-                variant: "danger",
-              },
+              label: "Base Initialization",
               slug: "getting-started/base-schema-and-user-operations",
             },
           ],

@@ -12,6 +12,7 @@
   --__font-display: "Mulish Variable", var(--__sl-font);
 
   --sl-color-bg-nav: var(--color-bg-trans) !important;
+  --sl-menu-button-size: calc(2rem + 2px);
 }
 
 .site-title,
@@ -25,6 +26,14 @@ h4,
 h5,
 h6 {
   text-transform: uppercase;
+}
+
+.sl-markdown-content .expressive-code .title {
+  text-transform: none;
+}
+
+code {
+  text-transform: none !important;
 }
 
 .site-title,
@@ -155,7 +164,7 @@ site-search > button[data-open-modal] > kbd {
   color: var(--sl-color-text);
 }
 
-.sl-markdown-content h2 {
+.sl-heading-wrapper {
   padding-bottom: 1rem;
   border-bottom: 1px solid var(--sl-color-hairline);
 }
@@ -166,4 +175,9 @@ site-search > button[data-open-modal] > kbd {
 
 table td code {
   overflow-wrap: normal;
+}
+
+starlight-menu-button button {
+  box-shadow: none;
+  border: 1px solid var(--sl-color-hairline);
 }

@@ -310,25 +310,49 @@ The transaction may be passed into the cascade function as `externalTx` or creat
 The structure of a cascade function follows this pattern:
 
 ```ts
-/** Exporting the error like this allows a wrapping function to identify the error `if (error.message === NAMED_ERROR) doSomething()` */
-export const NAMED_ERROR = "Something went wrong";
+import { eq } from "drizzle-orm";
 
+import { txDb } from "#/index";
+import { type Tx } from "#/helpers/types";
+import { bars } from "#/models/bars/schemas";
+import { bazs } from "#/models/bazs/schemas";
+
+import { foos, foosArchive } from "./schemas";
+import { selectFoo } from "./queries";
+
+/** Exporting the error like this allows a wrapping function to identify the error `if (error.message === NAMED_ERROR) doSomething()` */
+export const FOO_NOT_FOUND = "Foo not found";
+
+/** Adds given id to the foosArchive, handles related cascades, and removes it from foos */
 export function archiveFoo(
-  input: InferInput<typeof SchemaFoo>,
+  input: Parameters<typeof selectFoo>[0],
   externalTx?: Tx,
 ) {
-  /** Validate input parameters */
-  const { bar } = parse(SchemaFoo, input);
-
   const _archiveFoo = async (tx: Tx) => {
-    /**
-     * 1. Find the existing row data
-     * 2. Concurrently update the fk related rows in other tables & insert row into the archive table
-     * 3. Delete the original row from the table
-     */
+    /** Find the existing row data */
+    const rowData = await selectFoo(input, { tx, label: "archive_foo" });
 
-    /** Throw a named error like this when something goes wrong */
-    if (somethingWentWrong) throw new Error(NAMED_ERROR);
+    /** Throw a named error if data isn't found */
+    if (!rowData) throw new Error(FOO_NOT_FOUND);
+
+    /** Insert the data into the archive table */
+    tx.insert(foosArchive).values({ ...foo, id });
+
+    /** Process cascades concurrently */
+    await Promise.all([
+      /** Update related tables */
+      tx
+        .update(bars)
+        .set({ foosArchiveId: id, foosId: null })
+        .where(eq(bars.foosId, id)),
+      tx
+        .update(bazs)
+        .set({ foosArchiveId: id, foosId: null })
+        .where(eq(bazs.foosId, id)),
+    ]);
+
+    /** Delete the row data from the live table */
+    await tx.delete(foos).where(eq(foos.id, id));
   };
 
   /** Process with an external transaction if it exists */
@@ -538,7 +562,7 @@ Generally, model directories are self-contained with certain caveats:
 
 | file             | imports from                                                                    |
 | ---------------- | ------------------------------------------------------------------------------- |
-| `cascades.ts`    | `#/models/[model]/schemas`, `./schemas`, `./validations`                        |
+| `cascades.ts`    | `#/models/[model]/schemas`, `./schemas`                                         |
 | `consts.ts`      | ---                                                                             |
 | `queries.ts`     | `#/models/[join]--[model]/validations`, `./schemas`, `./validations`, `./views` |
 | `relations.ts`   | `#/models/[model]/schemas`, `./schemas`                                         |
