@@ -1,42 +1,88 @@
 ---
-title: Base Schema & User Operations
+title: Base Initialization
 ---
-
-:::danger
-This page is out of date and will be updated to reflect the current conventions soon.
-:::
 
 :::caution
 From this point on, the documentation will assume you have read and completed all of the steps on the [installation page](/getting-started/installation).
 :::
 
-## Model
+Copy and paste the code snippets from each section below into your `db` (aliased to `#`) folder.
 
-This is the base `users` table that all other schemas will be based on. It won't have much functionality until features from other sections are added.
+Then [migrate your database](#generate-and-apply-migrations) with your [configured `package.json` scripts](/getting-started/installation/#add-packagejson-scripts-for-migrations).
+
+## Helpers
+
+```ts title="#/helpers/consts.ts"
+export const TIMESTAMPTZ_CONFIG = { precision: 3, withTimezone: true } as const;
+```
+
+<details>
+  <summary>Why use `{precision: 3, withTimezone: true}`?</summary>
+
+    **withTimezone: true**: Postgres stores a `TIMESTAMP WITH TIME ZONE` as essentially a UTC time with an offset. It can be thought of as a moment in time. Whereas a `TIMESTAMP WITHOUT TIME ZONE` ignores any timezone indication on the input. It's like reading the time on a wall clock. [It's generally considered](https://wiki.postgresql.org/wiki/Don%27t_Do_This#Don.27t_use_timestamp_.28without_time_zone.29) [best practice to](https://www.timescale.com/blog/best-practices-for-picking-postgresql-data-types/) [always use `timestamptz`](https://justatheory.com/2012/04/postgres-use-timestamptz/).
+
+    If you can guarantee that all of your server and database instances are in the same timezone, then there probably won't be any practical difference between `timestamp` and `timestamptz`. However, there is no real advantage to using `timestamp`, [they both occupy 8 bytes](https://www.postgresql.org/docs/current/datatype-datetime.html#DATATYPE-DATETIME). _That's free real estate_
+
+    **precision: 3**: The javascript Date object only supports [up to milliseconds](https://developer.mozilla.org/en-US/docs/Web/API/Performance_API/High_precision_timing#performance.now_vs._date.now) (3), so the default postgres [precision of microseconds](https://www.postgresql.org/docs/current/datatype-datetime.html#DATATYPE-DATETIME-INPUT) (6) is more resolution than most apps will ever use. The `timestamptz` type will use [8 bytes](https://www.postgresql.org/docs/current/datatype-datetime.html#DATATYPE-DATETIME) regardless of resolution, but rounding may [lead to smaller backups after compression](https://dba.stackexchange.com/a/298981). Your mileage may vary
+
+</details>
+
+```ts title="#/helpers/cols.ts"
+import { bigint, timestamp as pgTimestamp, uuid } from "drizzle-orm/pg-core";
+
+import { TIMESTAMPTZ_CONFIG } from "./consts";
+
+// === Ids ===
+
+export const id = bigint("id", { mode: "bigint" }).primaryKey();
+
+export const randomId = uuid("id").primaryKey();
+
+// === Timestamps ===
+
+export const timestamp = pgTimestamp("timestamp", TIMESTAMPTZ_CONFIG).notNull();
+
+export const createdAt = pgTimestamp(
+  "created_at",
+  TIMESTAMPTZ_CONFIG,
+).notNull();
+
+export const updatedAt = pgTimestamp("updated_at", TIMESTAMPTZ_CONFIG);
+
+export const archivedAt = pgTimestamp("archived_at", TIMESTAMPTZ_CONFIG)
+  .notNull()
+  .defaultNow();
+```
+
+```ts title="#/helpers/types.ts"
+import { type db } from "#/index";
+
+/** Drizzle Postgres Transaction objecct type alias for convenience */
+export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/** Reference for running a query with the normal db object or a transaction object */
+export type QueryExecutor = typeof db | Tx;
+```
+
+## Models
+
+### Users
+
+Users are the foundation of the wunshot platform.
+Most othere modules will rely on the data in the `users` table and may require modifying it with additional columns.
+
+The code on this page only provides the primitive structure.
+There will not be any real functionality until features from other modules are added.
+
+---
+
+**`users`**
 
 | Column       | Type          | Description                        |
 | ------------ | ------------- | ---------------------------------- |
 | `id`         | `uuid`        | The user's unique id               |
 | `created_at` | `timestamptz` | The time the user was created      |
 | `updated_at` | `timestamptz` | The time the user was last updated |
-
-## Create the base `users` schema
-
-Paste into `@/db/users/schema.ts`
-
-```ts title="@/db/users/schema.ts"
-import { pgTable, timestamp, uuid } from "drizzle-orm/pg-core";
-
-export const users = pgTable("users", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  createdAt: timestamp("created_at", { precision: 3, withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { precision: 3, withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
-```
 
 <details>
   <summary>Why use a uuid as the primary key?</summary>
@@ -54,100 +100,565 @@ export const users = pgTable("users", {
       Overall, it's a good compromise between performance, security, and consistency.
 
 </details>
-<details>
-  <summary>Why use `{precision: 3, withTimezone: true}`?</summary>
 
-    **precision: 3**: The javascript Date object only supports [up to milliseconds](https://developer.mozilla.org/en-US/docs/Web/API/Performance_API/High_precision_timing#performance.now_vs._date.now) (3), so the default postgres [precision of microseconds](https://www.postgresql.org/docs/current/datatype-datetime.html#DATATYPE-DATETIME-INPUT) (6) is more resolution than most apps will ever use. The `timestamptz` type will use [8 bytes](https://www.postgresql.org/docs/current/datatype-datetime.html#DATATYPE-DATETIME) regardless of resolution, but rounding may [lead to smaller backups after compression.](https://dba.stackexchange.com/a/298981)
+---
 
-    **withTimezone: true**: Postgres stores a `TIMESTAMP WITH TIME ZONE` as essentially a UTC time with an offset. It can be thought of as a moment in time. Whereas a `TIMESTAMP WITHOUT TIME ZONE` ignores any timezone indication on the input. It's like reading the time on a wall clock. [It's generally considered](https://wiki.postgresql.org/wiki/Don%27t_Do_This#Don.27t_use_timestamp_.28without_time_zone.29) [best practice to](https://www.timescale.com/blog/best-practices-for-picking-postgresql-data-types/) [always use `timestamptz`](https://justatheory.com/2012/04/postgres-use-timestamptz/).
+**`usersArchive`**
 
-    If you can guarantee that all of your server and database instances are in the same timezone, then there probably won't be any practical difference between `timestamp` and `timestamptz`. However, there is no real advantage to using `timestamp`, [they both occupy 8 bytes](https://www.postgresql.org/docs/current/datatype-datetime.html#DATATYPE-DATETIME). ![That's free real estate](../../../assets/free-real-estate.gif)
+All of the columns from the `users` table are included in `usersArchive`.
 
-</details>
+Plus:
 
-{/* ### Add `users` schema to index file
+| Column        | Type          | Description                    |
+| ------------- | ------------- | ------------------------------ |
+| `archived_at` | `timestamptz` | The time the user was archived |
 
-```ts title="@/db/index.ts" del={4} ins={5}
-//...
-import import * as users from "./users/schema";
+---
 
-const schema = {}
-const schema = {users}
-//...
-``` */}
+```ts title="#/models/users/schemas.ts"
+import { pgTable } from "drizzle-orm/pg-core";
 
-## Add CRUD queries
+import { archivedAt, createdAt, randomId, updatedAt } from "#/helpers/cols";
 
-:::danger
-I am still working out what the best way to handle prepared statements is. These functions/exports are subject to change rapidly and should not be considered stable.
-:::
+export const users = pgTable("users", {
+  id: randomId.defaultRandom(),
+  createdAt: createdAt.defaultNow(),
+  updatedAt,
+});
 
-Paste into `@/db/users/queries.ts`
+export const usersArchive = pgTable("users_archive", {
+  id: randomId,
+  createdAt,
+  updatedAt,
+  archivedAt,
+});
+```
 
-```ts title="@/db/users/queries.ts"
-import "server-only"; // <- if you are using react server components
+```ts title="#/models/users/queries.ts"
+import { eq, getTableColumns, sql } from "drizzle-orm";
+import { parse, type InferInput } from "valibot";
 
-import { eq, sql } from "drizzle-orm";
-import { db } from "@/db";
-import { users } from "@/db/users/schema";
+import { type QueryExecutor, type Tx } from "#/helpers/types";
+import { db } from "#/index";
 
-export type NewUser = typeof users.$inferInsert;
+import { users } from "./schemas";
+import { InsertUser, SelectUser } from "./validations";
 
-const preparedInsertUser = db.insert(users).values({}).prepare("insert_user");
+// === INSERT ===
+
+const insertUserStmt = ({
+  qx,
+  label = "",
+}: {
+  qx: QueryExecutor;
+  label?: string;
+}) =>
+  qx
+    .insert(users)
+    .values({})
+    .returning({ id: users.id })
+    .prepare(`insert_user_${label}`);
+
+const insertUserDefault = insertUserStmt({ qx: db });
 
 export async function insertUser(
-  user: Omit<NewUser, "id" | "createdAt" | "updatedAt">,
+  input: InferInput<typeof InsertUser>,
+  viaTx?: { tx: Tx; label: string },
 ) {
-  return preparedInsertUser.execute(user);
+  const _insertUser = viaTx
+    ? insertUserStmt({ qx: viaTx.tx, label: viaTx.label })
+    : insertUserDefault;
+
+  const [data] = await _insertUser.execute(parse(InsertUser, input));
+
+  return data!;
 }
 
-const preparedSelectUser = db
-  .select()
-  .from(users)
-  .where(eq(users.id, sql.placeholder("id")))
-  .limit(1)
-  .prepare("select_user");
+// === SELECT ===
 
-export async function selectUser(id: string) {
-  const [user] = await preparedSelectUser.execute({ id });
-  if (!user) throw new Error("User not found");
-  return user;
-}
+/** Filter out id. Since it is required for the select input, there's no reason to return it */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const { id: idCol, ...userReturnValues } = getTableColumns(users);
 
-const preparedUpdateUser = db
-  .update(users)
-  .set({ updatedAt: sql`NOW()` })
-  .where(eq(users.id, sql.placeholder("id")))
-  .prepare("update_user");
+const selectUserStmt = ({
+  qx,
+  label = "",
+}: {
+  qx: QueryExecutor;
+  label?: string;
+}) =>
+  qx
+    .select(userReturnValues)
+    .from(users)
+    .where(eq(users.id, sql.placeholder("id")))
+    .limit(1)
+    .prepare(`select_user_${label}`);
 
-export async function updateUser(id: string) {
-  return preparedUpdateUser.execute({ id });
-}
+const selectUserDefault = selectUserStmt({ qx: db });
 
-const preparedDeleteUser = db
-  .delete(users)
-  .where(eq(users.id, sql.placeholder("id")))
-  .prepare("delete_user");
+export async function selectUser(
+  input: InferInput<typeof SelectUser>,
+  viaTx?: { tx: Tx; label: string },
+) {
+  const _selectUser = viaTx
+    ? selectUserStmt({ qx: viaTx.tx, label: viaTx.label })
+    : selectUserDefault;
 
-export async function deleteUser(id: string) {
-  return preparedDeleteUser.execute({ id });
+  const [data] = await _selectUser.execute(parse(SelectUser, input));
+
+  return data;
 }
 ```
 
-<details>
-<summary>
-  Why use `` sql`NOW()` ``?
-</summary>
+```ts title="#/models/users/validations.ts"
+import { createSelectSchema } from "drizzle-valibot";
+import * as v from "valibot";
 
-    This will ensure that the timestamp is consistent and created using the database's timezone.
+import { users } from "./schemas";
 
-    If `new Date()` was used instead, then the timestamp created would be in the local timezone of the server where the function was called. That could lead to inconsistency and unexpected behavior, especially if the database is in a different timezone.
+// === PRIMITIVES ===
 
-</details>
+const { id } = createSelectSchema(users).entries;
 
-:::caution[For Supabase users]
-You may need to change modes for prepared statements to work. [Read more about connections on Supabase](https://supabase.com/docs/guides/database/connecting-to-postgres#connection-pooler)
-:::
+// === INSERT ===
+
+export const InsertUser = v.object({});
+
+// === SELECT ===
+
+export const SelectUser = v.object({ id });
+```
+
+```ts title="#/models/users/cascades.ts"
+import { eq } from "drizzle-orm";
+
+import { txDb } from "#/index";
+import { type Tx } from "#/helpers/types";
+import { activities } from "#/models/activities/schemas";
+
+import { users, usersArchive } from "./schemas";
+import { selectUser } from "./queries";
+
+export const USER_NOT_FOUND = "User not found";
+
+/** Adds given id to the usersArchive, handles related cascades, and removes it from users */
+export function archiveUser(
+  input: Parameters<typeof selectUser>[0],
+  externalTx?: Tx,
+) {
+  const _archiveUser = async (tx: Tx) => {
+    /** Find the existing row data */
+    const rowData = await selectUser(input, { tx, label: "archive_user" });
+
+    /** Throw a named error if no user is found */
+    if (!rowData) throw new Error(USER_NOT_FOUND);
+
+    const { id } = input;
+
+    /** Insert the user data into the archive table */
+    await tx.insert(usersArchive).values({ ...rowData, id });
+
+    /** Process cascades concurrently */
+    await Promise.all([
+      /** Update related tables */
+      tx
+        .update(activities)
+        .set({ usersArchiveId: id, userId: null })
+        .where(eq(activities.userId, id)),
+    ]);
+
+    /** Delete the row data from the users table */
+    await tx.delete(users).where(eq(users.id, input.id));
+  };
+
+  /** Process with an external transaction if it exists */
+  if (externalTx) return _archiveUser(externalTx);
+
+  /** Process with a newly generated transaction */
+  return txDb.transaction((tx) => _archiveUser(tx));
+}
+```
+
+### Activities
+
+The `activities` table essentially acts as a basic audit trail within wunshot.
+
+The main reason this model is included at a base level is to provide a standard unified way to record errors.
+
+If you don't need or want that functionality, you can skip it. But beware, other modules will assume this exists and you will need to remove references to it.
+
+---
+
+`activities`
+
+| Column             | Type          | Description                                                                                                                       |
+| ------------------ | ------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `id`               | `bigint`      | The activity's unique id                                                                                                          |
+| `user_id`          | `uuid`        | The user who performed the activity                                                                                               |
+| `users_archive_id` | `uuid`        | If a user is archived, don’t lose the reference                                                                                   |
+| `label`            | `text`        | A text flag used to identify the activity. This could be an enum, but that becomes difficult to manage as ops functions are added |
+| `success`          | `boolean`     | Whether the activity succeeded or failed                                                                                          |
+| `failureCause`     | `text`        | If the activity failed, this will contain the reason                                                                              |
+| `meta`             | `jsonb`       | Any additional metadata about the activity                                                                                        |
+| `timestamp`        | `timestamptz` | The time the activity was created. Activities act like a log, so it doesn’t make sense to have `created_at` and `updated_at`      |
+
+---
+
+`activitiesArchive`
+
+All of the columns from the `activities` table are included in `activitiesArchive`.
+
+Plus:
+
+| Column        | Type          | Description                         |
+| ------------- | ------------- | ----------------------------------- |
+| `archived_at` | `timestamptz` | The time the activity was archived. |
+
+---
+
+```ts title="#/models/activities/schemas.ts"
+import {
+  boolean,
+  index,
+  jsonb,
+  pgTable,
+  text,
+  uuid,
+} from "drizzle-orm/pg-core";
+
+import { id, timestamp, archivedAt } from "#/helpers/cols";
+import { users, usersArchive } from "#/models/users/schemas";
+
+const activitiesBaseCols = {
+  userId: uuid("user_id").references(() => users.id),
+  usersArchiveId: uuid("users_archive_id").references(() => usersArchive.id),
+  label: text("label").notNull(), // Could be an enum, but it gets difficult to manage as ops are added
+  success: boolean("success").notNull(),
+  failureCause: text("failure_cause"), // Could be an enum, but it gets difficult to manage as ops are added
+  meta: jsonb("meta"),
+};
+
+export const activities = pgTable(
+  "activities",
+  {
+    ...activitiesBaseCols,
+    id: id.generatedAlwaysAsIdentity(),
+    timestamp: timestamp.defaultNow(),
+  },
+  (table) => [index().on(table.timestamp)],
+);
+
+export const activitiesArchive = pgTable("activities_archive", {
+  ...activitiesBaseCols,
+  id,
+  timestamp,
+  archivedAt,
+});
+```
+
+```ts title="#/models/activities/queries.ts"
+import { getTableColumns, sql } from "drizzle-orm";
+import { parse, type InferInput } from "valibot";
+
+import { type QueryExecutor, type Tx } from "#/helpers/types";
+import { db } from "#/index";
+
+import { activities } from "./schemas";
+import { InsertActivity, SelectActivity } from "./validations";
+
+// === INSERT ===
+
+const insertActivityStmt = ({
+  qx,
+  label = "",
+}: {
+  qx: QueryExecutor;
+  label?: string;
+}) =>
+  qx
+    .insert(activities)
+    .values({
+      userId: sql.placeholder("userId"),
+      success: sql.placeholder("success"),
+      label: sql.placeholder("label"),
+      failureCause: sql.placeholder("failureCause"),
+      meta: sql.placeholder("meta"),
+    })
+    .returning({ id: activities.id })
+    .prepare(`insert_activity_${label}`);
+
+const insertActivityDefault = insertActivityStmt({ qx: db });
+
+export async function insertActivity(
+  input: InferInput<typeof InsertActivity>,
+  viaTx?: { tx: Tx; label: string },
+) {
+  const _insertActivity = viaTx
+    ? insertActivityStmt({ qx: viaTx.tx, label: viaTx.label })
+    : insertActivityDefault;
+
+  const [data] = await _insertActivity.execute(parse(InsertActivity, input));
+
+  return data!;
+}
+
+// === SELECT ===
+
+/** Filter out id. Since it is required for the select input, there's no reason to return it */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const { id: idCol, ...activitiesReturnValues } = getTableColumns(activities);
+
+const selectActivityStmt = ({
+  qx,
+  label = "",
+}: {
+  qx: QueryExecutor;
+  label?: string;
+}) =>
+  qx
+    .select(activitiesReturnValues)
+    .from(activities)
+    .where(eq(activities.id, sql.placeholder("id")))
+    .limit(1)
+    .prepare(`select_activity_${label}`);
+
+const selectActivityDefault = selectActivityStmt({ qx: db });
+
+export async function selectActivity(
+  input: InferInput<typeof SelectActivity>,
+  viaTx?: { tx: Tx; label: string },
+) {
+  const _selectActivity = viaTx
+    ? selectActivityStmt({ qx: viaTx.tx, label: viaTx.label })
+    : selectActivityDefault;
+
+  const [data] = await _selectActivity.execute(parse(SelectActivity, input));
+
+  return data;
+}
+```
+
+```ts title="#/models/activities/validations.ts"
+import { createInsertSchema } from "drizzle-valibot";
+import * as v from "valibot";
+
+import { activities } from "./schemas";
+
+// === PRIMITIVES ===
+
+const { id } = createSelectSchema(activities).entries;
+
+const { label, failureCause, meta, userId } =
+  createInsertSchema(activities).entries;
+
+// === INSERT ===
+
+const insertActivityBaseVariant = {
+  label,
+  userId: v.nullish(v.unwrap(userId), null),
+  meta: v.nullish(v.unwrap(meta), null),
+};
+
+export const InsertActivity = v.variant("success", [
+  v.object({
+    ...insertActivityBaseVariant,
+    success: v.literal(true),
+    failureCause: v.nullish(v.null(), null),
+    failedCredential: v.nullish(v.null(), null),
+  }),
+  /**
+   * You could use another tier of variant schemas keying on the failureCause here.
+   * That's how it was originally written, but it became complicated to update/maintain
+   **/
+  v.object({
+    ...insertActivityBaseVariant,
+    success: v.literal(false),
+    failureCause: v.nonNullish(failureCause),
+    failedCredential,
+  }),
+]);
+
+// === SELECT ===
+
+export const SelectActivity = v.object({ id });
+```
+
+```ts title="#/models/activities/cascades.ts"
+import { eq } from "drizzle-orm";
+
+import { txDb } from "#/index";
+import { type Tx } from "#/helpers/types";
+
+import { activities, activitiesArchive } from "./schemas";
+import { selectActivity } from "./queries";
+
+export const ACTIVITY_NOT_FOUND = "Activity not found";
+
+/** Adds given id to the activitiesArchive, handles related cascades, and removes it from activities */
+export function archiveActivity(
+  input: Parameters<typeof selectActivity>[0],
+  externalTx?: Tx,
+) {
+  const _archiveActivity = async (tx: Tx) => {
+    /** Find the existing row data */
+    const rowData = await selectActivity(input, {
+      tx,
+      label: "archive_activity",
+    });
+
+    /** Throw a named error if data isn't found */
+    if (!rowData) throw new Error(ACTIVITY_NOT_FOUND);
+
+    const { id } = input;
+
+    /** Insert the data into the archive table */
+    await tx.insert(activitiesArchive).values({ ...rowData, id });
+
+    /** Process cascades concurrently */
+    // await Promise.all([
+    //   /** Update related tables */
+    // ]);
+
+    /** Delete the row data from the live table */
+    await tx.delete(activities).where(eq(activities.id, id));
+  };
+
+  /** Process with an external transaction if it exists */
+  if (externalTx) return _archiveActivity(externalTx);
+
+  /** Process with a newly generated transaction */
+  return txDb.transaction((tx) => _archiveActivity(tx));
+}
+```
+
+## Ops
+
+```ts title="#/ops/internals/log-activity.ts"
+import { serializeError } from "serialize-error";
+import { type InferInput } from "valibot";
+
+import { insertActivity } from "#/models/activities/queries";
+import { type InsertActivity } from "#/models/activities/validations";
+
+type InsertActivityInput = InferInput<typeof InsertActivity>;
+
+/**
+ * Extends error to include an activity property.
+ * It is intended to be processed by {@link logFailedActivity} after being caught
+ */
+export class ActivityError<M extends string> extends Error {
+  readonly activity;
+  declare readonly message: M;
+  constructor({
+    activity,
+    message = "Something went wrong" as M,
+  }: {
+    activity: Omit<
+      Exclude<InsertActivityInput, { success: true }>,
+      "label" | "success"
+    >;
+    message?: M;
+  }) {
+    super(message, { cause: activity.failureCause });
+    this.name = "ActivityError";
+    this.activity = activity;
+  }
+}
+
+/** Prints an exception to the console with some basic style formatting */
+function printException({
+  error,
+  label = "",
+}: {
+  error: unknown;
+  label?: string;
+}) {
+  console.group(`\x1b[31m=== ${label ? `${label} ` : ""}EXCEPTION ===\x1b[0m`);
+  console.error(error);
+  console.groupEnd();
+}
+
+/** Simple wrapper of {@link insertActivity} for modules to build on top off */
+function logActivity(input: Parameters<typeof insertActivity>[0]) {
+  return insertActivity(input);
+}
+
+/**
+ * Logs a given error as a failed activity.
+ * Automatically formats unknown errors for database entry.
+ */
+async function logFailedActivity({
+  error,
+  ...passThrough
+}: {
+  error: unknown;
+  label: InsertActivityInput["label"];
+  ipAddress: string;
+}) {
+  try {
+    if (error instanceof ActivityError) {
+      if (process.env.NODE_ENV === "development")
+        printException({ error, label: "ACTIVITY" });
+      return await logActivity({
+        ...error.activity,
+        ...passThrough,
+        success: false,
+      } as InsertActivityInput);
+    } else {
+      if (process.env.NODE_ENV === "development")
+        printException({ error, label: "UNKNOWN" });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { stack, ...errorProps } = serializeError(error) as {
+        [x: string]: unknown;
+      };
+      return await logActivity({
+        ...passThrough,
+        success: false,
+        failureCause: "UNKNOWN",
+        meta: errorProps,
+      });
+    }
+  } catch (error) {
+    /**
+     * DANGER: NOT SUITED FOR PRODUCTION. UNHANDLED EXCEPTIONS SHOULD BE REPORTED/STORED SOMEWHERE
+     * If adding to activities_log fails, print the error to the console
+     * this is a last-ditch attempt to capture an exception
+     */
+    printException({ error, label: "UNHANDLED" });
+  }
+}
+
+/** Logs given activity as a success */
+async function logSuccessfulActivity(
+  input: Omit<Extract<InsertActivityInput, { success: true }>, "success">,
+) {
+  try {
+    logActivityAndHandleBans({
+      ...input,
+      success: true,
+    });
+  } catch (error) {
+    /**
+     * DANGER: NOT SUITED FOR PRODUCTION. UNHANDLED EXCEPTIONS SHOULD BE REPORTED/STORED SOMEWHERE
+     * If adding to activities_log fails, print the error to the console
+     * this is a last-ditch attempt to capture an exception
+     */
+    printException({ error, label: "UNHANDLED" });
+  }
+}
+
+/** Apply a given label to {@link logSuccessfulActivity} and {@link logFailedActivity} */
+export function initializeLoggers({ label }: { label: string }) {
+  return {
+    logSuccess: (
+      input: Omit<Parameters<typeof logSuccessfulActivity>[0], "label">,
+    ) => logSuccessfulActivity({ ...input, label }),
+    logFailure: (
+      input: Omit<Parameters<typeof logFailedActivity>[0], "label">,
+    ) => logFailedActivity({ ...input, label }),
+  };
+}
+```
 
 ## Generate and apply migrations
 
