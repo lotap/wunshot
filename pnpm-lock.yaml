@@ -62,8 +62,8 @@ importers:
         version: 5.8.3
     devDependencies:
       eslint-plugin-mdx:
-        specifier: ^3.3.1
-        version: 3.4.0(eslint@9.24.0(jiti@2.4.2))
+        specifier: ^3.4.1
+        version: 3.4.1(eslint@9.24.0(jiti@2.4.2))
       prettier:
         specifier: ^3.3.3
         version: 3.5.3
@@ -1990,8 +1990,8 @@ packages:
     resolution: {integrity: sha512-/veY75JbMK4j1yjvuUxuVsiS/hr/4iHs9FTT6cgTexxdE0Ly/glccBAkloH/DofkjRbZU3bnoj38mOmhkZ0lHw==}
     engines: {node: '>=12'}
 
-  eslint-mdx@3.4.0:
-    resolution: {integrity: sha512-sNffDEvt3fAEkrCntX0Kk/IWhHkfp0fhQ7/n30gQuIRm/FeUjLMkKkgAwlOFqxIMD4XJ03Iidmkf18EC8zTyYw==}
+  eslint-mdx@3.4.1:
+    resolution: {integrity: sha512-/Pt9D5TIAZwAUnCJA24i+uE9NuqulmLI58a1oU1eRb5jeUNOR23FpIt4xuBE9CFR50nd4FkLnuyox7dSNSZ5Tg==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       eslint: '>=8.0.0'
@@ -2000,8 +2000,8 @@ packages:
       remark-lint-file-extension:
         optional: true
 
-  eslint-plugin-mdx@3.4.0:
-    resolution: {integrity: sha512-f/ot8rSp/telkW1joqe0y9XQigTrE99sQHqyqLYYVgGLtQvl54suDidepbiGsDF7Z5V9uyQPWpmY0Qu/ZMRzmg==}
+  eslint-plugin-mdx@3.4.1:
+    resolution: {integrity: sha512-dfQ7LthK/Kmfw2d5XrR4CS1ScmFOa1S9vPjBUxtKgCEl6mNnYVfA/yg50xLyab0pI/GEfGEmvlajs2biDHJBsA==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       eslint: '>=8.0.0'
@@ -6407,7 +6407,7 @@ snapshots:
 
   escape-string-regexp@5.0.0: {}
 
-  eslint-mdx@3.4.0(eslint@9.24.0(jiti@2.4.2)):
+  eslint-mdx@3.4.1(eslint@9.24.0(jiti@2.4.2)):
     dependencies:
       acorn: 8.14.1
       acorn-jsx: 5.3.2(acorn@8.14.1)
@@ -6428,10 +6428,10 @@ snapshots:
       - bluebird
       - supports-color
 
-  eslint-plugin-mdx@3.4.0(eslint@9.24.0(jiti@2.4.2)):
+  eslint-plugin-mdx@3.4.1(eslint@9.24.0(jiti@2.4.2)):
     dependencies:
       eslint: 9.24.0(jiti@2.4.2)
-      eslint-mdx: 3.4.0(eslint@9.24.0(jiti@2.4.2))
+      eslint-mdx: 3.4.1(eslint@9.24.0(jiti@2.4.2))
       mdast-util-from-markdown: 2.0.2
       mdast-util-mdx: 3.0.0
       micromark-extension-mdxjs: 3.0.0

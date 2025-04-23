@@ -30,7 +30,7 @@
     "typescript": "^5.8.3"
   },
   "devDependencies": {
-    "eslint-plugin-mdx": "^3.3.1",
+    "eslint-plugin-mdx": "^3.4.1",
     "prettier": "^3.3.3",
     "prettier-plugin-astro": "^0.14.1"
   }
