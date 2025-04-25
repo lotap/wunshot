@@ -436,7 +436,7 @@ For example: `selectUserByEmail`.
 Update queries may also include the target of the update in the function name.
 For example: `updateUserEmail`.
 
-When multi-row inserts or updates are necessary, the `bulk` prefix is used to name the function.
+When multi-row inserts, selects, or updates are necessary, the `bulk` prefix is used to name the function.
 For example: `bulkInsertUsers`.
 
 Queries accept an optional `viaTx` argument with a transaction object and label.
@@ -597,7 +597,7 @@ Generally, model directories are self-contained with certain caveats:
 
 | file                         | imports from                                                                    |
 | ---------------------------- | ------------------------------------------------------------------------------- |
-| `cascades.ts`                | `#/models/[model]/schemas`, `./schemas`                                         |
+| `cascades.ts`                | `#/models/[model]/schemas`, `./queries`, `./schemas`                            |
 | `consts.ts`                  | ---                                                                             |
 | `queries.ts`                 | `#/models/[join]--[model]/validations`, `./schemas`, `./validations`, `./views` |
 | `relations.ts`               | `#/models/[model]/schemas`, `./schemas`                                         |

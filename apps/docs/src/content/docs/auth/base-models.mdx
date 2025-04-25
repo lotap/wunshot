@@ -1,0 +1,318 @@
+---
+title: Base Models
+---
+
+## Sessions
+
+```ts title="#/models/sessions/schemas.ts"
+import { sql } from "drizzle-orm";
+import { pgTable, text, uuid } from "drizzle-orm/pg-core";
+
+import {
+  archivedAt,
+  createdAt,
+  expiresAt,
+  randomId,
+  updatedAt,
+} from "#/helpers/cols";
+import { users, usersArchive } from "#/models/users/schemas";
+
+export const sessions = pgTable("sessions", {
+  id: randomId.defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id),
+  nonceHash: text("nonce_hash").notNull(),
+  createdAt: createdAt.defaultNow(),
+  updatedAt,
+  expiresAt: expiresAt.default(sql`now() + interval '14 days'`), // drizzle doesn't allow params in default values
+});
+
+export const sessionsArchive = pgTable("sessions_archive", {
+  id: randomId,
+  userId: uuid("user_id").references(() => users.id),
+  usersArchiveId: uuid("users_archive_id").references(() => usersArchive.id),
+  createdAt,
+  updatedAt,
+  archivedAt,
+});
+```
+
+```ts title="#/models/sessions/validations.ts"
+import { createInsertSchema, createSelectSchema } from "drizzle-valibot";
+import * as v from "valibot";
+
+import { Argon2 } from "#/helpers/validators";
+
+import { sessions } from "./schemas";
+
+// === PRIMITIVES ===
+
+const { id } = createSelectSchema(sessions).entries;
+
+const { userId } = createInsertSchema(sessions).entries;
+
+const nonceHash = Argon2;
+
+// === INSERT ===
+
+export const InsertSession = v.object({
+  userId,
+  nonceHash,
+});
+
+// === SELECT ===
+
+export const SelectSession = v.object({ id });
+
+// === UPDATE ===
+
+export const UpdateSessionSessionNonceHash = v.object({
+  id,
+  nonceHash,
+});
+```
+
+```ts title="#/models/sessions/queries.ts"
+import { and, eq, lte, sql } from "drizzle-orm";
+import { parse, type InferInput } from "valibot";
+
+import { type QueryExecutor, type Tx } from "#/helpers/types";
+import { db } from "#/index";
+
+import { sessions } from "./schemas";
+import {
+  ByUser,
+  InsertSession,
+  SelectSession,
+  UpdateSessionNonceHash,
+} from "./validations";
+
+// === INSERT ===
+
+const insertSessionStmt = ({
+  qx,
+  label = "",
+}: {
+  qx: QueryExecutor;
+  label?: string;
+}) =>
+  qx
+    .insert(sessions)
+    .values({
+      userId: sql.placeholder("userId"),
+      nonceHash: sql.placeholder("nonceHash"),
+    })
+    .returning({ id: sessions.id, expiresAt: sessions.expiresAt })
+    .prepare(`insert_session_${label}`);
+
+const insertSessionDefault = insertSessionStmt({ qx: db });
+
+export async function insertSession(
+  input: InferInput<typeof InsertSession>,
+  viaTx?: { tx: Tx; label: string },
+) {
+  const _insertSession = viaTx
+    ? insertSessionStmt({ qx: viaTx.tx, label: viaTx.label })
+    : insertSessionDefault;
+
+  const [data] = await _insertSession.execute(parse(InsertSession, input));
+
+  return data!;
+}
+
+// === SELECT ===
+
+/** Filter out id. Since it is required for the select input, there's no reason to return it */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const { id: idCol, ...sessionsReturnValues } = getTableColumns(sessions);
+
+const selectSessionStmt = ({
+  qx,
+  label = "",
+}: {
+  qx: QueryExecutor;
+  label?: string;
+}) =>
+  qx
+    .select(sessionsReturnValues)
+    .from(sessions)
+    .where(
+      and(
+        eq(sessions.id, sql.placeholder("id")),
+        lte(sql`now()`, sessions.expiresAt),
+      ),
+    )
+    .limit(1)
+    .prepare(`select_session_${label}`);
+
+const selectSessionDefault = selectSessionStmt({ qx: db });
+
+export async function selectSession(
+  input: InferInput<typeof SelectSession>,
+  viaTx?: { tx: Tx; label: string },
+) {
+  const _selectSession = viaTx
+    ? selectSessionStmt({ qx: viaTx.tx, label: viaTx.label })
+    : selectSessionDefault;
+
+  const [data] = await _selectSession.execute(parse(SelectSession, input));
+
+  return data;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const { userId, nonceHash, expiresAt, ...sessionsByUserReturnValues } =
+  getTableColumns(sessions);
+
+const bulkSelectSessionsByUserStmt = ({
+  qx = db,
+  label = "",
+}: {
+  qx?: QueryExecutor;
+  label?: string;
+}) =>
+  qx
+    .select(sessionsByUserReturnValues)
+    .from(sessions)
+    .where(eq(sessions.userId, sql.placeholder("userId")))
+    .prepare(`select_sessions_by_user_${label}`);
+
+const bulkSelectSessionsByUserDefault = bulkSelectSessionsByUserStmt({});
+
+export async function bulkSelectSessionsByUser(
+  input: InferInput<typeof ByUser>,
+  viaTx?: { tx: Tx; label: string },
+) {
+  const _bulkSelectSessionsByUser = viaTx
+    ? bulkSelectSessionsByUserStmt({ qx: viaTx.tx, label: viaTx.label })
+    : bulkSelectSessionsByUserDefault;
+
+  return _bulkSelectSessionsByUser.execute(parse(ByUser, input));
+}
+
+// === UPDATE ===
+
+const updateSessionNonceHashStmt = ({
+  qx,
+  label = "",
+}: {
+  qx: QueryExecutor;
+  label?: string;
+}) =>
+  qx
+    .update(sessions)
+    .set({
+      nonceHash: sql`${sql.placeholder("nonceHash")}`,
+      updatedAt: sql`now()`,
+      expiresAt: sql`now() + interval '14 days'` /** @todo use a constant for the expiration date  */,
+    })
+    .where(eq(sessions.id, sql.placeholder("id")))
+    .returning({ userId: sessions.userId, expiresAt: sessions.expiresAt })
+    .prepare(`update_session_nonce_hash_${label}`);
+
+const updateSessionNonceHashDefault = updateSessionNonceHashStmt({
+  qx: db,
+});
+
+export async function updateSessionNonceHash(
+  input: InferInput<typeof UpdateSessionNonceHash>,
+  viaTx?: { tx: Tx; label: string },
+) {
+  const _updateSessionNonceHash = viaTx
+    ? updateSessionNonceHashStmt({ qx: viaTx.tx, label: viaTx.label })
+    : updateSessionNonceHashDefault;
+
+  const [data] = await _updateSessionNonceHash.execute(
+    parse(UpdateSessionNonceHash, input),
+  );
+
+  return data;
+}
+```
+
+```ts title="#/models/sessions/cascades.ts"
+import { eq } from "drizzle-orm";
+
+import { txDb } from "#/index";
+import { type Tx } from "#/helpers/types";
+
+import { bulkSelectSessionsByUser, selectSession } from "./queries";
+import { sessions, sessionsArchive } from "./schemas";
+
+export const SESSION_NOT_FOUND = "Session not found";
+
+/** Adds given id to the sessionsArchive, handles related cascades, and removes it from sessions */
+export function archiveSession(
+  input: Parameters<typeof selectSession>[0],
+  externalTx?: Tx,
+) {
+  const _archiveSession = async (tx: Tx) => {
+    const rowData = await selectSession(input, {
+      tx,
+      label: "archive_session",
+    });
+
+    if (!rowData) throw new Error(SESSION_NOT_FOUND);
+
+    const { id } = input;
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { expiresAt, nonceHash, ...filteredRowData } = rowData;
+
+    /** Insert the session data into the archive table */
+    await tx.insert(sessionsArchive).values({ ...filteredRowData, id });
+
+    /** Process cascades concurrently */
+    // await Promise.all([
+    //   /** Update related tables */
+    // ]);
+
+    /** Delete the session from the sessions table */
+    await tx.delete(sessions).where(eq(sessions.id, id));
+  };
+
+  /** Process with an external transaction if it exists */
+  if (externalTx) return _archiveSession(externalTx);
+
+  /** Process with a newly generated transaction */
+  return txDb.transaction((tx) => _archiveSession(tx));
+}
+
+export const NO_SESSIONS_FOUND = "No sessions found for the given user";
+
+export function bulkArchiveSessionsByUserId(
+  input: { userId: string },
+  externalTx?: Tx,
+) {
+  const { userId } = input;
+
+  const _bulkArchiveSessionsByUserId = async (tx: Tx) => {
+    const bulkRowData = await bulkSelectSessionsByUser(input, {
+      tx,
+      label: "bulk_archive_session",
+    });
+
+    if (!bulkRowData.length) throw new Error(NO_SESSIONS_FOUND);
+
+    /** Insert the sessions into the archive table */
+    await tx
+      .insert(sessionsArchive)
+      .values(bulkRowData.map((rowData) => ({ ...rowData, userId })));
+
+    /** Process cascades concurrently */
+    // await Promise.all([
+    //   /** Update related tables */
+    // ]);
+
+    /** Delete the sessions from the sessions table */
+    await tx.delete(sessions).where(eq(sessions.id, userId));
+  };
+
+  /** Process with an external transaction if it exists */
+  if (externalTx) return _bulkArchiveSessionsByUserId(externalTx);
+
+  /** Process with a newly generated transaction */
+  return txDb.transaction((tx) => _bulkArchiveSessionsByUserId(tx));
+}
+```

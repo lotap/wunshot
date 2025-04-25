@@ -236,8 +236,8 @@ import { txDb } from "#/index";
 import { type Tx } from "#/helpers/types";
 import { activities } from "#/models/activities/schemas";
 
-import { users, usersArchive } from "./schemas";
 import { selectUser } from "./queries";
+import { users, usersArchive } from "./schemas";
 
 export const USER_NOT_FOUND = "User not found";
 
@@ -493,8 +493,8 @@ import { eq } from "drizzle-orm";
 import { txDb } from "#/index";
 import { type Tx } from "#/helpers/types";
 
-import { activities, activitiesArchive } from "./schemas";
 import { selectActivity } from "./queries";
+import { activities, activitiesArchive } from "./schemas";
 
 export const ACTIVITY_NOT_FOUND = "Activity not found";
 
