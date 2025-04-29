@@ -639,7 +639,11 @@ const failureOutputMessages = {
   BAR: "Bar happened",
 } as const;
 
-export async function foo({ input }: { input: unknown }) {
+export async function foo({
+  input,
+}: {
+  input: unknown;
+}): Promise<OpsSafeReturn> {
   // Wrap functionality in a single top-level try/catch block to handle all errors.
   try {
     // Initial validation - different ops will need different forms of validation

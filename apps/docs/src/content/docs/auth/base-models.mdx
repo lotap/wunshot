@@ -316,3 +316,94 @@ export function bulkArchiveSessionsByUserId(
   return txDb.transaction((tx) => _bulkArchiveSessionsByUserId(tx));
 }
 ```
+
+## Activities
+
+```ts title="#/models/activities/schemas.ts" ins={3}
+const activitiesBaseCols = {
+  // ...
+  failedCredential: text("failed_credential"),
+};
+```
+
+```ts title="#/models/activities/validations.ts" ins={5-33, 44, 54}
+// === PRIMITIVES ===
+
+// ...
+
+/**
+ * The source of a failed credential is an unknown form of user input.
+ * This validation will transform it to a string and truncate it to 255 chars for storage.
+ * That way, bad attempts (such as SQL injection) can be nullified and logged for later analysis.
+ */
+const FailedCredential = v.nullish(
+  v.pipe(
+    v.unknown(),
+    v.transform((input: unknown) => {
+      if (typeof input === "string") return input;
+      if (typeof input === "undefined" || input === null) return null;
+      if (typeof input === "object" && "toString" in input)
+        return input.toString();
+      try {
+        return JSON.stringify(input);
+      } catch {
+        return String(input);
+      }
+    }),
+    v.union([
+      v.pipe(
+        v.string(),
+        v.transform((input) => input.substring(0, 255)),
+      ),
+      v.null(),
+    ]),
+  ),
+  null,
+);
+
+// === INSERT ===
+
+// ...
+
+export const InsertActivity = v.variant("success", [
+  v.object({
+    ...insertActivityBaseVariant,
+    success: v.literal(true),
+    failureCause: v.nullish(v.null(), null),
+    failedCredential: v.nullish(v.null(), null),
+  }),
+  /**
+   * You could use another tier of variant schemas keying on the failureCause here.
+   * That's how it was originally written, but it became complicated to update/maintain
+   **/
+  v.object({
+    ...insertActivityBaseVariant,
+    success: v.literal(false),
+    failureCause: v.nonNullish(failureCause),
+    failedCredential,
+  }),
+]);
+```
+
+```ts title="#/models/activities/queries.ts" ins={16}
+// === INSERT ===
+
+const insertActivityStmt = ({
+  qx,
+  label = "",
+}: {
+  qx: QueryExecutor;
+  label?: string;
+}) =>
+  qx
+    .insert(activities)
+    .values({
+      userId: sql.placeholder("userId"),
+      success: sql.placeholder("success"),
+      label: sql.placeholder("label"),
+      failureCause: sql.placeholder("failureCause"),
+      meta: sql.placeholder("meta"),
+    })
+    .returning({ id: activities.id })
+    .prepare(`insert_activity_${label}`);
+```

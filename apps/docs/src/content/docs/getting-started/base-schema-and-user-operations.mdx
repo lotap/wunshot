@@ -62,6 +62,21 @@ export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 /** Reference for running a query with the normal db object or a transaction object */
 export type QueryExecutor = typeof db | Tx;
+
+/** Basic type for data returned by ops functions */
+type OpsData = Record<string, unknown>;
+
+/** Consistent return type for ops functions */
+export type OpsSafeReturn<
+  D extends OpsData = OpsData,
+  M extends string = string,
+> =
+  | {
+      success: true;
+      data: D;
+      message?: never;
+    }
+  | { success: false; data?: never; message?: M };
 ```
 
 ## Models
@@ -386,7 +401,6 @@ export const InsertActivity = v.variant("success", [
     ...insertActivityBaseVariant,
     success: v.literal(true),
     failureCause: v.nullish(v.null(), null),
-    failedCredential: v.nullish(v.null(), null),
   }),
   /**
    * You could use another tier of variant schemas keying on the failureCause here.
@@ -396,7 +410,6 @@ export const InsertActivity = v.variant("success", [
     ...insertActivityBaseVariant,
     success: v.literal(false),
     failureCause: v.nonNullish(failureCause),
-    failedCredential,
   }),
 ]);
 
