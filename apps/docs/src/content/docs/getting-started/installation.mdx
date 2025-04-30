@@ -334,6 +334,15 @@ DB_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE_NAME?PARAM_NAME=PARAM_VALU
 npm i valibot
 ```
 
+## (Optional) `serialize-error`
+
+Handling errors in typescript can be [unintuitive](https://kentcdodds.com/blog/get-a-catch-block-error-message-with-typescript).
+This package makes it easier to interact with errors for logging or persisting to the database.
+
+```sh
+npm i serialize-error
+```
+
 ## (Optional) `server-only`
 
 If you are using react server components, you should use the [server-only](https://www.npmjs.com/package/server-only) package. This can help prevent leaking secrets to the client.

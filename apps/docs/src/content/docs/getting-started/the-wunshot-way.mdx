@@ -143,6 +143,33 @@ Sometimes that means arrays are used as a column data type.
 
 Sometimes it means schemas use denormalized data.
 
+Application flexibility is preferred over database rigidity.
+**Most changes to application logic should not require running a database migration.**
+
+As a result, `text` is often preferred over `varchar(n)` or `enum`.
+
+An `enum` may still be the best choice in cases where values are not expected to be added over time.
+
+{/* For instances where data integrity is crucial, `text` columns with check constraints are preferred over `varchar(n)` */}
+
+#### Check Constraints
+
+A check contraint provides a test that values must pass before being placed in the database.
+
+That adds an additional layer of data integrity to the column, but also require a migration to update. When the constraint is updated, all existing rows must also pass the new test.
+
+When data integrity is paramount and you do not expect the requirements to change often, then enabling check constraints is a good choice.
+
+`text` columns with check constraints are preferred over `varchar(n)` since they offer more flexibility and negligible difference in performance.
+
+---
+
+**Most modules in wunshot will not use check constraints by default.**
+
+**Using valibot schemas as the single source of truth for validation is often a more simple, flexible, and maintainable approach to data integrity.**
+
+The boost that check constraints provide is not worth the added complexity in most cases.
+
 #### Soft Deletes and Archive Tables
 
 By convention, wunshot supports "soft deletes" through archive tables to ensure data integrity.
@@ -203,8 +230,8 @@ An archive table will prevent an arbitrary user deletion, but there’s nothing 
 There’s no perfect solution.
 But, at least with an archive table there’s a warning that `orders` will be impacted.
 
-In the real world, the relationships between tables are often more complex and the developers may be one person, but months apart.
-Archive tables help bring awareness to knowledge gaps by failing early, and that’s a major win for maintainability in the long-run.
+In the real world, the relationships between tables are often more complex and the "developers" may be a single person, but months apart.
+**Archive tables help bring awareness to knowledge gaps by failing early**, and that’s a major win for maintainability in the long-run.
 
 ## Anatomy of a wunshot Codebase
 
@@ -409,7 +436,7 @@ For example: `selectUserByEmail`.
 Update queries may also include the target of the update in the function name.
 For example: `updateUserEmail`.
 
-When multi-row inserts or updates are necessary, the `bulk` prefix is used to name the function.
+When multi-row inserts, selects, or updates are necessary, the `bulk` prefix is used to name the function.
 For example: `bulkInsertUsers`.
 
 Queries accept an optional `viaTx` argument with a transaction object and label.
@@ -546,7 +573,15 @@ They have three primary purposes:
 
 3. **Shared Code Between Models**: Sometimes data should explicitly belong to more than one table, but is not general enough for `#/helpers`. Join directories offer a convenient place to put that.
 
+Join directories can have all of the same files as regular models, but with some key differences:
+
+##### `queries.ts`
+
+Queries in joins are functionally the same as those in regular models, but [Common table expressions (CTE)](https://orm.drizzle.team/docs/select#with-clause) are often defined internally.
+
 ##### `validators.ts`
+
+Custom [Valibot validations](https://valibot.dev/api/custom/) that should only be shared between the models in the associated with the join
 
 #### Import / Export in Model files
 
@@ -560,15 +595,16 @@ Generally, model directories are self-contained with certain caveats:
 - `queries.ts` can import `schemas.ts` or `validations.ts` from associated join directories
 - `validations.ts` in model directories can import `validators.ts` from associated join directories
 
-| file             | imports from                                                                    |
-| ---------------- | ------------------------------------------------------------------------------- |
-| `cascades.ts`    | `#/models/[model]/schemas`, `./schemas`                                         |
-| `consts.ts`      | ---                                                                             |
-| `queries.ts`     | `#/models/[join]--[model]/validations`, `./schemas`, `./validations`, `./views` |
-| `relations.ts`   | `#/models/[model]/schemas`, `./schemas`                                         |
-| `schemas.ts`     | `#/models/[model]/schemas`                                                      |
-| `validations.ts` | `#/models/[join]--[model]/validators`, `./schemas`                              |
-| `views.ts`       | `#/models/[join]--[model]/validations`, `./schemas`, `./validations`            |
+| file                         | imports from                                                                    |
+| ---------------------------- | ------------------------------------------------------------------------------- |
+| `cascades.ts`                | `#/models/[model]/schemas`, `./queries`, `./schemas`                            |
+| `consts.ts`                  | ---                                                                             |
+| `queries.ts`                 | `#/models/[join]--[model]/validations`, `./schemas`, `./validations`, `./views` |
+| `relations.ts`               | `#/models/[model]/schemas`, `./schemas`                                         |
+| `schemas.ts`                 | `#/models/[model]/schemas`                                                      |
+| `validations.ts`             | `#/models/[join]--[model]/validators`, `./schemas`                              |
+| `validators.ts` (joins only) | ---                                                                             |
+| `views.ts`                   | `#/models/[join]--[model]/validations`, `./schemas`, `./validations`            |
 
 ### Ops
 
@@ -603,7 +639,11 @@ const failureOutputMessages = {
   BAR: "Bar happened",
 } as const;
 
-export async function foo({ input }: { input: unknown }) {
+export async function foo({
+  input,
+}: {
+  input: unknown;
+}): Promise<OpsSafeReturn> {
   // Wrap functionality in a single top-level try/catch block to handle all errors.
   try {
     // Initial validation - different ops will need different forms of validation
@@ -775,7 +815,7 @@ export const db = drizzle({
 
 - When choosing between solutions, optimize for deletion. The better code is whichever is easier to remove
 
-- Readability is more important than efficiency
+- Readability is usually more important than efficiency
 
 - Following conventions leads to readable and predictable code
 

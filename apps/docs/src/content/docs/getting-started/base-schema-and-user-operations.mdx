@@ -23,7 +23,7 @@ export const TIMESTAMPTZ_CONFIG = { precision: 3, withTimezone: true } as const;
 
     If you can guarantee that all of your server and database instances are in the same timezone, then there probably won't be any practical difference between `timestamp` and `timestamptz`. However, there is no real advantage to using `timestamp`, [they both occupy 8 bytes](https://www.postgresql.org/docs/current/datatype-datetime.html#DATATYPE-DATETIME). _That's free real estate_
 
-    **precision: 3**: The javascript Date object only supports [up to milliseconds](https://developer.mozilla.org/en-US/docs/Web/API/Performance_API/High_precision_timing#performance.now_vs._date.now) (3), so the default postgres [precision of microseconds](https://www.postgresql.org/docs/current/datatype-datetime.html#DATATYPE-DATETIME-INPUT) (6) is more resolution than most apps will ever use. The `timestamptz` type will use [8 bytes](https://www.postgresql.org/docs/current/datatype-datetime.html#DATATYPE-DATETIME) regardless of resolution, but rounding may [lead to smaller backups after compression](https://dba.stackexchange.com/a/298981). Your mileage may vary
+    **precision: 3**: The javascript Date object only supports [up to milliseconds](https://developer.mozilla.org/en-US/docs/Web/API/Performance_API/High_precision_timing#performance.now_vs._date.now) (3), so the default postgres [precision of microseconds](https://www.postgresql.org/docs/current/datatype-datetime.html#DATATYPE-DATETIME-INPUT) (6) is more resolution than most apps will ever use. The `timestamptz` type will use [8 bytes](https://www.postgresql.org/docs/current/datatype-datetime.html#DATATYPE-DATETIME) regardless of resolution, but rounding may [lead to smaller backups after compression](https://dba.stackexchange.com/a/298981). _Your mileage may vary_
 
 </details>
 
@@ -62,6 +62,21 @@ export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 /** Reference for running a query with the normal db object or a transaction object */
 export type QueryExecutor = typeof db | Tx;
+
+/** Basic type for data returned by ops functions */
+type OpsData = Record<string, unknown>;
+
+/** Consistent return type for ops functions */
+export type OpsSafeReturn<
+  D extends OpsData = OpsData,
+  M extends string = string,
+> =
+  | {
+      success: true;
+      data: D;
+      message?: never;
+    }
+  | { success: false; data?: never; message?: M };
 ```
 
 ## Models
@@ -132,6 +147,25 @@ export const usersArchive = pgTable("users_archive", {
   updatedAt,
   archivedAt,
 });
+```
+
+```ts title="#/models/users/validations.ts"
+import { createSelectSchema } from "drizzle-valibot";
+import * as v from "valibot";
+
+import { users } from "./schemas";
+
+// === PRIMITIVES ===
+
+const { id } = createSelectSchema(users).entries;
+
+// === INSERT ===
+
+export const InsertUser = v.object({});
+
+// === SELECT ===
+
+export const SelectUser = v.object({ id });
 ```
 
 ```ts title="#/models/users/queries.ts"
@@ -210,25 +244,6 @@ export async function selectUser(
 }
 ```
 
-```ts title="#/models/users/validations.ts"
-import { createSelectSchema } from "drizzle-valibot";
-import * as v from "valibot";
-
-import { users } from "./schemas";
-
-// === PRIMITIVES ===
-
-const { id } = createSelectSchema(users).entries;
-
-// === INSERT ===
-
-export const InsertUser = v.object({});
-
-// === SELECT ===
-
-export const SelectUser = v.object({ id });
-```
-
 ```ts title="#/models/users/cascades.ts"
 import { eq } from "drizzle-orm";
 
@@ -236,8 +251,8 @@ import { txDb } from "#/index";
 import { type Tx } from "#/helpers/types";
 import { activities } from "#/models/activities/schemas";
 
-import { users, usersArchive } from "./schemas";
 import { selectUser } from "./queries";
+import { users, usersArchive } from "./schemas";
 
 export const USER_NOT_FOUND = "User not found";
 
@@ -348,12 +363,59 @@ export const activities = pgTable(
   (table) => [index().on(table.timestamp)],
 );
 
+/**
+ * Used to preserve relations while keep the activites table small and efficient
+ * @todo set up a cron job to move old activites to the archive automatically
+ */
 export const activitiesArchive = pgTable("activities_archive", {
   ...activitiesBaseCols,
   id,
   timestamp,
   archivedAt,
 });
+```
+
+```ts title="#/models/activities/validations.ts"
+import { createInsertSchema } from "drizzle-valibot";
+import * as v from "valibot";
+
+import { activities } from "./schemas";
+
+// === PRIMITIVES ===
+
+const { id } = createSelectSchema(activities).entries;
+
+const { label, failureCause, meta, userId } =
+  createInsertSchema(activities).entries;
+
+// === INSERT ===
+
+const insertActivityBaseVariant = {
+  label,
+  userId: v.nullish(v.unwrap(userId), null),
+  meta: v.nullish(v.unwrap(meta), null),
+};
+
+export const InsertActivity = v.variant("success", [
+  v.object({
+    ...insertActivityBaseVariant,
+    success: v.literal(true),
+    failureCause: v.nullish(v.null(), null),
+  }),
+  /**
+   * You could use another tier of variant schemas keying on the failureCause here.
+   * That's how it was originally written, but it became complicated to update/maintain
+   **/
+  v.object({
+    ...insertActivityBaseVariant,
+    success: v.literal(false),
+    failureCause: v.nonNullish(failureCause),
+  }),
+]);
+
+// === SELECT ===
+
+export const SelectActivity = v.object({ id });
 ```
 
 ```ts title="#/models/activities/queries.ts"
@@ -438,59 +500,14 @@ export async function selectActivity(
 }
 ```
 
-```ts title="#/models/activities/validations.ts"
-import { createInsertSchema } from "drizzle-valibot";
-import * as v from "valibot";
-
-import { activities } from "./schemas";
-
-// === PRIMITIVES ===
-
-const { id } = createSelectSchema(activities).entries;
-
-const { label, failureCause, meta, userId } =
-  createInsertSchema(activities).entries;
-
-// === INSERT ===
-
-const insertActivityBaseVariant = {
-  label,
-  userId: v.nullish(v.unwrap(userId), null),
-  meta: v.nullish(v.unwrap(meta), null),
-};
-
-export const InsertActivity = v.variant("success", [
-  v.object({
-    ...insertActivityBaseVariant,
-    success: v.literal(true),
-    failureCause: v.nullish(v.null(), null),
-    failedCredential: v.nullish(v.null(), null),
-  }),
-  /**
-   * You could use another tier of variant schemas keying on the failureCause here.
-   * That's how it was originally written, but it became complicated to update/maintain
-   **/
-  v.object({
-    ...insertActivityBaseVariant,
-    success: v.literal(false),
-    failureCause: v.nonNullish(failureCause),
-    failedCredential,
-  }),
-]);
-
-// === SELECT ===
-
-export const SelectActivity = v.object({ id });
-```
-
 ```ts title="#/models/activities/cascades.ts"
 import { eq } from "drizzle-orm";
 
 import { txDb } from "#/index";
 import { type Tx } from "#/helpers/types";
 
-import { activities, activitiesArchive } from "./schemas";
 import { selectActivity } from "./queries";
+import { activities, activitiesArchive } from "./schemas";
 
 export const ACTIVITY_NOT_FOUND = "Activity not found";
 
