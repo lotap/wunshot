@@ -363,7 +363,7 @@ createSession -.- createSessionBreakout
 import { flatten, safeParse } from "valibot";
 
 import { db } from "#/index";
-import { selectActiveBansAndExcessiveActivitiesByTargets } from "#/models/activities--bans/queries";
+import { type OpsSafeReturn } from "#/helpers/types";
 import { insertUser } from "#/models/users/queries";
 import { UserFormInput } from "#/models/users/validations";
 
@@ -397,7 +397,11 @@ const failureOutputMessages = {
  *   use a materialized view and/or store the results in a cache
  *   add more robust rate-limiting using in-memory storage
  */
-export async function signUp({ input }: { input: unknown }) {
+export async function signUp({
+  input,
+}: {
+  input: unknown;
+}): Promise<OpsSafeReturn> {
   /** Apply a label for the activity to the logger */
   const { logSuccess, logFailure } = initializeLoggers({
     label: ACTIVITY_LABEL,
@@ -544,7 +548,7 @@ createSession -.- createSessionBreakout
 import { flatten, safeParse } from "valibot";
 
 import { db } from "#/index";
-import { selectActiveBansAndExcessiveActivitiesByTargets } from "#/models/activities--bans/queries";
+import { type OpsSafeReturn } from "#/helpers/types";
 import { UserFormInput } from "#/models/users/validations";
 import { selectUserAndSessionsByUsername } from "#/models/sessions--users/queries";
 
@@ -576,7 +580,11 @@ const failureOutputMessages = {
  *   use a materialized view and/or store the results in a cache
  *   add more robust rate-limiting using in-memory storage
  */
-export async function signIn({ input }: { input: unknown }) {
+export async function signIn({
+  input,
+}: {
+  input: unknown;
+}): Promise<OpsSafeReturn> {
   /** Apply a label for the activity to the logger */
   const { logSuccess, logFailure } = initializeLoggers({
     label: ACTIVITY_LABEL,
@@ -704,6 +712,8 @@ throwError --> catchError --> returnFailure
 ```ts title="#/ops/auth/verify-access.ts"
 import { serializeError } from "serialize-error";
 
+import { type OpsSafeReturn } from "#/helpers/types";
+
 import { ActivityError, initializeLoggers } from "./internals/log-activity";
 import { extractAccessTokenPayload } from "./internals/access-token";
 
@@ -728,7 +738,7 @@ export async function verifyAccess({
 }: {
   token: string;
   logOnSuccess?: boolean;
-}) {
+}): Promise<OpsSafeReturn> {
   /** Apply a label for the activity to the logger */
   const { logSuccess, logFailure } = initializeLoggers({
     label: ACTIVITY_LABEL,
@@ -985,7 +995,115 @@ throwError --> catchError --> returnFailure
 ```
 
 ```ts title="#/ops/auth/sign-out.ts"
+import { serializeError } from "serialize-error";
 
+import { type OpsSafeReturn } from "#/helpers/types";
+import { archiveSession } from "#/models/sessions/cascades";
+import { selectSession } from "#/models/sessions/queries";
+
+import { verifyTarget } from "./internals/hashing";
+import { ActivityError, initializeLoggers } from "./internals/log-activity";
+import { extractRefreshTokenPayload } from "./internals/refresh-token";
+
+const ACTIVITY_LABEL = "SIGN_OUT";
+
+const failureCauses = {
+  INVALID_JWS: "INVALID_JWS",
+  SESSION_NOT_FOUND: "SESSION_NOT_FOUND",
+  SESSION_EXPIRED: "SESSION_EXPIRED",
+  WRONG_NONCE: "WRONG_NONCE",
+} as const;
+
+const failureOutputMessages = {
+  GENERIC: "Something went wrong.",
+} as const;
+
+/**
+ * Remove session and add it to sessionsArchive
+ *
+ * Checks if the user has a valid session/refresh token first to ensure
+ * that an attacker can not arbitrarily remove random sessions
+ */
+export async function signOut({
+  token,
+}: {
+  token: string;
+}): Promise<OpsSafeReturn> {
+  /** Apply a label for the activity to the logger */
+  const { logSuccess, logFailure } = logActivity({
+    label: ACTIVITY_LABEL,
+  });
+
+  try {
+    const { nonce, sessionId } = await extractRefreshTokenPayload({
+      token,
+    }).catch((error) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { stack, ...errorProps } = serializeError(error);
+      throw new ActivityError({
+        activity: {
+          failureCause: failureCauses.INVALID_JWS,
+          meta: errorProps,
+        },
+        message: failureOutputMessages.GENERIC,
+      });
+    });
+
+    /** Find the session by id */
+    const session = await selectSession({ id: sessionId });
+
+    /** If the session is not found, throw an associated error */
+    if (!session)
+      throw new ActivityError({
+        activity: {
+          failureCause: failureCauses.SESSION_NOT_FOUND,
+          meta: { sessionId },
+        },
+        message: failureOutputMessages.GENERIC,
+      });
+
+    const { nonceHash, userId } = session;
+
+    /**
+     * Ensure the refresh token matches the hashed one stored in the database
+     * @todo consider removing this check. It was written before the refreshToken was a signed JWT and may no longer be necessary
+     */
+    const isNonceVerified = await verifyTarget(nonceHash, nonce);
+
+    /** If the refresh token doesn't match, throw an associated error */
+    if (!isNonceVerified)
+      throw new ActivityError({
+        activity: {
+          failureCause: failureCauses.WRONG_NONCE,
+        },
+        message: failureOutputMessages.GENERIC,
+      });
+
+    /** Delete the session */
+    await archiveSession({ id: sessionId });
+
+    /** Log the successful activity */
+    await logSuccess({ userId });
+
+    /** Return success and an empty data object */
+    return {
+      success: true,
+      data: {},
+    } as const;
+  } catch (error) {
+    /** Handle thrown errors by sending them to the activitiesLog */
+    await logFailure({ error });
+
+    /** Return the status and an error message */
+    return {
+      success: false,
+      message:
+        error instanceof ActivityError
+          ? (error.message as (typeof failureOutputMessages)[keyof typeof failureOutputMessages])
+          : failureOutputMessages.GENERIC,
+    } as const;
+  }
+}
 ```
 
 ### Sign Out All
@@ -1015,5 +1133,95 @@ end
 ```
 
 ```ts title="#/ops/auth/sign-out-all.ts"
+import { serializeError } from "serialize-error";
 
+import {
+  bulkArchiveSessionsByUserId,
+  NO_SESSIONS_FOUND,
+} from "#/models/sessions/cascades";
+
+import { ActivityError, logActivity } from "./internals/log-activity";
+import { extractAccessTokenPayload } from "./internals/access-token";
+
+const ACTIVITY_LABEL = "SIGN_OUT_ALL";
+
+const failureCauses = {
+  RATELIMIT: "RATELIMIT",
+  INVALID_JWE: "INVALID_JWE",
+  NO_SESSIONS_FOUND: "NO_SESSIONS_FOUND",
+} as const;
+
+const failureOutputMessages = {
+  GENERIC: "Something went wrong.",
+} as const;
+
+/**
+ * Remove all sessions for a user based on the given accessToken. Used to sign-out on all devices.
+ */
+export async function signOutAll({
+  input,
+  ipAddress,
+}: {
+  input: { accessToken: string };
+  ipAddress: string;
+}) {
+  /** Apply a label and ipAddress for the activity to the logger */
+  const { logSuccess, logFailure } = logActivity({
+    label: ACTIVITY_LABEL,
+    ipAddress,
+  });
+
+  try {
+    /** Validate access token and get user id */
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { exp, userId } = await extractAccessTokenPayload({
+      token: input.accessToken,
+    }).catch((error) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { stack, ...errorProps } = serializeError(error);
+      throw new ActivityError({
+        activity: {
+          failureCause: failureCauses.INVALID_JWE,
+          meta: errorProps,
+        },
+        message: failureOutputMessages.GENERIC,
+      });
+    });
+
+    await bulkArchiveSessionsByUserId({ userId }).catch((error) => {
+      /** Throw an ActivityError if no sessions are found */
+      if (error.message === NO_SESSIONS_FOUND)
+        throw new ActivityError({
+          activity: {
+            failureCause: failureCauses.NO_SESSIONS_FOUND,
+            userId,
+          },
+          message: failureOutputMessages.GENERIC,
+        });
+      /** If any other error occurs, throw it to be caught by the outer try/catch {@link logFailure} as unknown */
+      throw error;
+    });
+
+    /** Log the successful activity */
+    await logSuccess({ userId });
+
+    /** Return success and an empty data object */
+    return {
+      success: true,
+      data: {},
+    } as const;
+  } catch (error) {
+    /** Handle thrown errors by sending them to the activitiesLog */
+    await logFailure({ error });
+
+    /** Return the status and an error message */
+    return {
+      success: false,
+      message:
+        error instanceof ActivityError
+          ? (error.message as (typeof failureOutputMessages)[keyof typeof failureOutputMessages])
+          : failureOutputMessages.GENERIC,
+    } as const;
+  }
+}
 ```
