@@ -1,0 +1,5 @@
+---
+"wunshot": patch
+---
+
+update deps
