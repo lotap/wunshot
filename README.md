@@ -1,10 +1,8 @@
-# wunshot
-
-[READ THE DOCS](https://wunshot.dev/)
+![wunshot](./apps/docs/src/assets/images/wordmark-duo.svg)
 
 _A user platform you can copy and paste._ 👤
 
-A collection of schemas and functions designed to help you build secure, efficient, feature-filled backends faster. Built on top of [Drizzle ORM](https://orm.drizzle.team/docs/overview). Free. Open-source. **Use this to build your backend _without_ a service.**
+A collection of schemas and functions designed to help you build secure, efficient, feature-filled backends faster. Built on top of [Drizzle ORM](https://orm.drizzle.team/docs/overview). Free. Open-source. Type Safe. Frontend Agnostic. **Use this to build your backend _without_ a service.**
 
 [GET STARTED](https://wunshot.dev/getting-started/)
 

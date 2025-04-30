@@ -44,6 +44,10 @@ code {
   text-transform: none;
 }
 
+.site-title img {
+  height: 1.25rem;
+}
+
 .group-label .large,
 #starlight__on-this-page {
   font-size: var(--sl-text-xs);
