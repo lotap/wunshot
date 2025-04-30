@@ -1,5 +1,11 @@
 # wunshot
 
+## 0.0.13
+
+### Patch Changes
+
+- c41c733: add new logo/branding
+
 ## 0.0.12
 
 ### Patch Changes
