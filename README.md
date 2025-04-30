@@ -1,4 +1,4 @@
-![wunshot](./apps/docs/src/assets/images/wordmark-duo.svg)
+<img src="./apps/docs/src/assets/images/wordmark-duo.svg" alt="wunshot" width="256"/>
 
 _A user platform you can copy and paste._ 👤
 
