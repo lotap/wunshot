@@ -614,8 +614,8 @@ export async function signIn({
     /** @todo destructure necessary fields from the validation output based on the auth strategy */
     // const {} = validationOutput;
 
-    /** Attempt to find the user for the given credentials */
-    const user = await selectUserAndSessionsByUsername({ username });
+    /** @todo Attempt to find the user for the given credentials based on the auth strategy */
+    // const user = await selectUserByCredential({ credential });
 
     /** If no user is found, throw an error */
     if (!user) {
@@ -629,9 +629,7 @@ export async function signIn({
 
     const {
       id: userId,
-      ipAddresses,
-      passwordHash,
-      username: userUsername,
+      // ...
     } = user;
 
     /** @todo verify the input data matches the existing user data based on the auth strategy */
