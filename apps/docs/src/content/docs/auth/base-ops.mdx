@@ -242,7 +242,7 @@ export function getKeyFromSecretsMap({
 ```
 
 ```ts title="#/ops/auth/internals/refresh-token.ts"
-import "server-only";
+import "server-only"; // <- if you are using react server components
 
 import { randomBytes } from "node:crypto";
 
@@ -398,6 +398,7 @@ const failureOutputMessages = {
  *   add more robust rate-limiting using in-memory storage
  */
 export async function signUp({ input }: { input: unknown }) {
+  /** Apply a label for the activity to the logger */
   const { logSuccess, logFailure } = initializeLoggers({
     label: ACTIVITY_LABEL,
   });
@@ -539,6 +540,144 @@ throwError --> catchError --> returnFailure
 createSession -.- createSessionBreakout
 ```
 
+```ts title="#/ops/auth/sign-in.ts"
+import { flatten, safeParse } from "valibot";
+
+import { db } from "#/index";
+import { selectActiveBansAndExcessiveActivitiesByTargets } from "#/models/activities--bans/queries";
+import { UserFormInput } from "#/models/users/validations";
+import { selectUserAndSessionsByUsername } from "#/models/sessions--users/queries";
+
+import { generateAccessToken } from "./internals/access-token";
+import { createSession } from "./internals/create-session";
+import { verifyTarget } from "./internals/hashing";
+import { ActivityError, initializeLoggers } from "./internals/log-activity";
+
+const ACTIVITY_LABEL = "SIGN_IN";
+
+const failureCauses = {
+  INVALID_CREDENTIAL: "INVALID_CREDENTIAL",
+  USER_NOT_FOUND: "USER_NOT_FOUND",
+} as const;
+
+const failureOutputMessages = {
+  GENERIC:
+    "Something went wrong. Please ensure the information you entered is correct then try again.",
+} as const;
+
+/**
+ * Authenticate a user and start an associated session.
+ *
+ * WARNING: The activitiesLog/rate-limiting mechanism has inherent attack vectors
+ * An attacker could continuously submit credentials to hog db resources and drive up costs
+ * If that becomes a problem, some solutions are:
+ *   move the server behind a firewall/proxy
+ *   add a (captcha) challenge for bot detection
+ *   use a materialized view and/or store the results in a cache
+ *   add more robust rate-limiting using in-memory storage
+ */
+export async function signIn({ input }: { input: unknown }) {
+  /** Apply a label for the activity to the logger */
+  const { logSuccess, logFailure } = initializeLoggers({
+    label: ACTIVITY_LABEL,
+  });
+
+  try {
+    /** Validate the input */
+    const {
+      success: validationSuccess,
+      output: validationOutput,
+      issues: validationIssues,
+    } = safeParse(UserFormInput, input);
+
+    /**
+     * If validation fails log the activity as a failure and return a generic error
+     * It is likely a bad actor bypassing client-side validation
+     */
+    if (!validationSuccess) {
+      throw new ActivityError({
+        activity: {
+          failureCause: failureCauses.INVALID_CREDENTIAL,
+        },
+        message: failureOutputMessages.GENERIC,
+      });
+    }
+
+    /** @todo destructure necessary fields from the validation output based on the auth strategy */
+    // const {} = validationOutput;
+
+    /** Attempt to find the user for the given credentials */
+    const user = await selectUserAndSessionsByUsername({ username });
+
+    /** If no user is found, throw an error */
+    if (!user) {
+      throw new ActivityError({
+        activity: {
+          failureCause: failureCauses.USER_NOT_FOUND,
+        },
+        message: failureOutputMessages.GENERIC,
+      });
+    }
+
+    const {
+      id: userId,
+      ipAddresses,
+      passwordHash,
+      username: userUsername,
+    } = user;
+
+    /** @todo verify the input data matches the existing user data based on the auth strategy */
+
+    /**
+     * Create a payload reference for the access token.
+     * This abstraction is unnecessary but creates a convenient place to add custom claims if needed
+     */
+    const payload = { userId };
+
+    /** Wrap the auth processes in a transaction */
+    const {
+      session: { refreshToken, expiresAt: sessionExpiresAt },
+      access: { token: accessToken, exp: accessTokenExpiresAt },
+    } = await db.transaction(async (tx) => {
+      /** Concurrently create a session and generate an access token */
+      const [session, access] = await Promise.all([
+        createSession({ userId }, { tx, label: "sign_in" }),
+        generateAccessToken({ payload }),
+      ] as const);
+
+      return { session, access };
+    });
+
+    /** Log the successful sign-in activity */
+    await logSuccess({ userId, guestsArchiveId: guestsArchive?.id });
+
+    /** Return the user data and tokens */
+    return {
+      success: true,
+      data: {
+        ...payload,
+        accessToken,
+        accessTokenExpiresAt,
+        refreshToken,
+        sessionExpiresAt,
+      },
+    } as const;
+  } catch (error) {
+    /** Handle thrown errors by sending them to the activitiesLog */
+    await logFailure({ error });
+
+    /** Return the status and an error message */
+    return {
+      success: false,
+      message:
+        error instanceof ActivityError
+          ? (error.message as (typeof failureOutputMessages)[keyof typeof failureOutputMessages])
+          : failureOutputMessages.GENERIC,
+    } as const;
+  }
+}
+```
+
 ### Verify Access
 
 ```mermaid
@@ -560,6 +699,75 @@ decryptAccessToken -- valid --> returnSuccess
 decryptAccessToken -. invalid .-x throwError
 
 throwError --> catchError --> returnFailure
+```
+
+```ts title="#/ops/auth/verify-access.ts"
+import { serializeError } from "serialize-error";
+
+import { ActivityError, initializeLoggers } from "./internals/log-activity";
+import { extractAccessTokenPayload } from "./internals/access-token";
+
+const ACTIVITY_LABEL = "VERIFY_ACCESS";
+
+const failureCauses = {
+  INVALID_JWE: "INVALID_JWE",
+} as const;
+
+const failureOutputMessages = {
+  GENERIC:
+    "Authentication failure. Please ensure you are signed in and try again.",
+} as const;
+
+/**
+ * Verify an access token and return data from its payload
+ * Logging success is disabled by default to avoid using any database connections
+ */
+export async function verifyAccess({
+  token,
+  logOnSuccess = false,
+}: {
+  token: string;
+  logOnSuccess?: boolean;
+}) {
+  /** Apply a label for the activity to the logger */
+  const { logSuccess, logFailure } = initializeLoggers({
+    label: ACTIVITY_LABEL,
+  });
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { exp, ...filteredPayload } = await extractAccessTokenPayload({
+      token,
+    }).catch((error) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { stack, ...errorProps } = serializeError(error);
+      throw new ActivityError({
+        activity: {
+          failureCause: failureCauses.INVALID_JWE,
+          meta: errorProps,
+        },
+        message: failureOutputMessages.GENERIC,
+      });
+    });
+
+    if (logOnSuccess) await logSuccess({ userId: filteredPayload.userId });
+
+    /** Return the relevant data directly from the payload */
+    return { success: true, data: filteredPayload } as const;
+  } catch (error) {
+    /** Handle thrown errors by sending them to the activitiesLog */
+    await logFailure({ error });
+
+    /** Return the status and an error message */
+    return {
+      success: false,
+      message:
+        error instanceof ActivityError
+          ? (error.message as (typeof failureOutputMessages)[keyof typeof failureOutputMessages])
+          : failureOutputMessages.GENERIC,
+    } as const;
+  }
+}
 ```
 
 ### Refresh
@@ -598,6 +806,156 @@ verifyNonce -. wrong nonce .-x throwError
 throwError --> catchError --> returnFailure
 ```
 
+```ts title="#/ops/auth/refresh-auth.ts"
+import { serializeError } from "serialize-error";
+
+import { db } from "#/index";
+
+import {
+  selectSession,
+  updateSessionNonceHash,
+} from "#/models/sessions/queries";
+
+import {
+  extractRefreshTokenPayload,
+  generateRefreshToken,
+} from "./internals/refresh-token";
+import { verifyTarget } from "./internals/hashing";
+import { ActivityError, initializeLoggers } from "./internals/log-activity";
+import { generateAccessToken } from "./internals/access-token";
+
+const ACTIVITY_LABEL = "REFRESH_AUTH";
+
+const failureCauses = {
+  INVALID_JWS: "INVALID_JWS",
+  SESSION_NOT_FOUND: "SESSION_NOT_FOUND",
+  WRONG_NONCE: "WRONG_NONCE",
+  EMPTY_SESSION_UPDATE: "EMPTY_SESSION_UPDATE",
+} as const;
+
+const failureOutputMessages = {
+  GENERIC:
+    "Authentication failure. Please ensure you are signed in and try again.",
+} as const;
+
+export async function refreshAuth({ token }: { token: string }) {
+  /** Apply a label and ipAddress for the activity to the logger */
+  const { logSuccess, logFailure } = initializeLoggers({
+    label: ACTIVITY_LABEL,
+  });
+
+  try {
+    const { nonce, sessionId } = await extractRefreshTokenPayload({
+      token,
+    }).catch((error) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { stack, ...errorProps } = serializeError(error);
+      throw new ActivityError({
+        activity: {
+          failureCause: failureCauses.INVALID_JWS,
+          meta: errorProps,
+        },
+        message: failureOutputMessages.GENERIC,
+      });
+    });
+
+    /** Find the session by id */
+    const session = await selectSession({ id: sessionId });
+
+    /** If the session is not found, throw an associated error */
+    if (!session)
+      throw new ActivityError({
+        activity: {
+          failureCause: failureCauses.SESSION_NOT_FOUND,
+          meta: { sessionId },
+        },
+        message: failureOutputMessages.GENERIC,
+      });
+
+    const { nonceHash, expiresAt } = session;
+
+    /** Ensure the refresh token matches the hashed one stored in the database */
+    const isNonceVerified = await verifyTarget(nonceHash, nonce);
+
+    /** If the refresh token doesn't match, throw an associated error */
+    if (!isNonceVerified)
+      throw new ActivityError({
+        activity: {
+          failureCause: failureCauses.WRONG_NONCE,
+        },
+        message: failureOutputMessages.GENERIC,
+      });
+
+    /** Create a new refresh token and its hash */
+    const { token: newRefreshToken, nonceHash: newNonceHash } =
+      await generateRefreshToken({ session: { id: sessionId, expiresAt } });
+
+    /** Wrap the auth processes in a transaction */
+    const {
+      updatedSession: { userId, expiresAt: sessionExpiresAt },
+      access: { token: newAccessToken, exp: accessTokenExpiresAt },
+    } = await db.transaction(async (tx) => {
+      /** Update the existing session's refresh token hash and expiration date */
+      const updatedSession = await updateSessionNonceHash(
+        {
+          id: sessionId,
+          ipAddress,
+          nonceHash: newNonceHash!,
+        },
+        { tx, label: "refresh_auth" },
+      );
+
+      /**
+       * An update can return an empty array without throwing an error
+       * this will catch that and rollback the transaction
+       */
+      if (!updatedSession)
+        throw new ActivityError({
+          activity: {
+            failureCause: failureCauses.EMPTY_SESSION_UPDATE,
+            meta: { sessionId },
+          },
+          message: failureOutputMessages.GENERIC,
+        });
+
+      /** Create a new encrypted JWT access token */
+      const access = await generateAccessToken({
+        payload: { userId: updatedSession.userId },
+      });
+
+      return { updatedSession, access };
+    });
+
+    /** Log the successful activity */
+    await logSuccess({ userId });
+
+    /** Return the data that's embedded in the JWE as well as data needed to create cookies for refreshing auth */
+    return {
+      success: true,
+      data: {
+        userId,
+        newAccessToken,
+        accessTokenExpiresAt,
+        newRefreshToken,
+        sessionExpiresAt,
+      },
+    } as const;
+  } catch (error) {
+    /** Handle thrown errors by sending them to the activitiesLog */
+    await logFailure({ error });
+
+    /** Return the status and an error message */
+    return {
+      success: false,
+      message:
+        error instanceof ActivityError
+          ? (error.message as (typeof failureOutputMessages)[keyof typeof failureOutputMessages])
+          : failureOutputMessages.GENERIC,
+    } as const;
+  }
+}
+```
+
 ### Sign Out
 
 ```mermaid
@@ -626,6 +984,10 @@ verifyNonce -. wrong nonce .-x throwError
 throwError --> catchError --> returnFailure
 ```
 
+```ts title="#/ops/auth/sign-out.ts"
+
+```
+
 ### Sign Out All
 
 ```mermaid
@@ -650,4 +1012,8 @@ subgraph returns
   returnSuccess
   returnFailure
 end
+```
+
+```ts title="#/ops/auth/sign-out-all.ts"
+
 ```
