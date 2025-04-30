@@ -1,5 +1,11 @@
 # wunshot
 
+## 0.0.12
+
+### Patch Changes
+
+- 778ed08: update deps
+
 ## 0.0.11
 
 ### Patch Changes
