@@ -1,6 +1,7 @@
 import React, {useEffect, useState} from 'react'
 import {Text} from 'ink'
-import BigText from 'ink-big-text'
+
+import packageJson from '@/package.json' with {type: 'json'}
 
 import {withActionLayout} from '@/src/components/action-layout'
 import {ModuleSelect} from '@/src/components/module-select'
@@ -33,9 +34,22 @@ function Init() {
 	return <ModuleSelect />
 }
 
+const asciiW = `
+___       ___       ___
+\\\\\\\\     /  /\\     /  /\\
+ \\\\\\\\   /  //\\\\   /  ///
+  \\\\\\\\ /  ///\\\\\\ /  ///
+   \\\\\\/  /// \\\\\\/  ///
+    \\/__///   \\/__///
+     \\__\\/     \\__\\/
+`
+
 export const InitAction = withActionLayout(() => (
 	<>
-		<BigText text="wunshot" font="block" />
+		<Text>{asciiW}</Text>
+		<Text>wunshot</Text>
+		<Text>{`${packageJson.version}\n`}</Text>
+
 		<Init />
 	</>
 ))

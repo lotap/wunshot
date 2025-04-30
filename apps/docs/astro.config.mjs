@@ -10,7 +10,22 @@ export default defineConfig({
   integrations: [
     starlight({
       title: "wunshot",
-      favicon: "/1f35d.svg",
+      favicon: "/favicon.svg",
+      head: [
+        {
+          tag: "link",
+          attrs: { rel: "icon", href: "/favicon.ico", sizes: "32x32" },
+        },
+      ],
+      logo: {
+        /**
+         * Easiest solution for getting Safari to work with multiple colors.
+         * @todo either inline the svg or find a way to explicity set the MIME type
+         */
+        light: "./src/assets/images/wordmark-duo-for-light.svg",
+        dark: "./src/assets/images/wordmark-duo-for-dark.svg",
+        replacesTitle: true,
+      },
       social: [
         {
           icon: "github",
