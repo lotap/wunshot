@@ -463,7 +463,7 @@ export async function signUp({
 
       /** Concurrently create a session and generate an access token */
       const [session, access] = await Promise.all([
-        createSession({ userId, ipAddress }, { tx, label: "sign_up" }),
+        createSession({ userId }, { tx, label: "sign_up" }),
         generateAccessToken({ payload: { userId } }),
       ] as const);
 
@@ -655,7 +655,7 @@ export async function signIn({
     });
 
     /** Log the successful sign-in activity */
-    await logSuccess({ userId, guestsArchiveId: guestsArchive?.id });
+    await logSuccess({ userId });
 
     /** Return the user data and tokens */
     return {
@@ -847,7 +847,7 @@ const failureOutputMessages = {
 } as const;
 
 export async function refreshAuth({ token }: { token: string }) {
-  /** Apply a label and ipAddress for the activity to the logger */
+  /** Apply a label for the activity to the logger */
   const { logSuccess, logFailure } = initializeLoggers({
     label: ACTIVITY_LABEL,
   });
@@ -907,7 +907,6 @@ export async function refreshAuth({ token }: { token: string }) {
       const updatedSession = await updateSessionNonceHash(
         {
           id: sessionId,
-          ipAddress,
           nonceHash: newNonceHash!,
         },
         { tx, label: "refresh_auth" },
@@ -1133,6 +1132,7 @@ end
 ```ts title="#/ops/auth/sign-out-all.ts"
 import { serializeError } from "serialize-error";
 
+import { type OpsSafeReturn } from "#/helpers/types";
 import {
   bulkArchiveSessionsByUserId,
   NO_SESSIONS_FOUND,
@@ -1158,15 +1158,12 @@ const failureOutputMessages = {
  */
 export async function signOutAll({
   input,
-  ipAddress,
 }: {
   input: { accessToken: string };
-  ipAddress: string;
-}) {
-  /** Apply a label and ipAddress for the activity to the logger */
+}): Promise<OpsSafeReturn> {
+  /** Apply a label for the activity to the logger */
   const { logSuccess, logFailure } = logActivity({
     label: ACTIVITY_LABEL,
-    ipAddress,
   });
 
   try {
