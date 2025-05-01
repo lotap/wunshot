@@ -1,6 +1,12 @@
-# wunshot
+<img src="../../apps/docs/src/assets/images/wordmark-duo.svg" alt="wunshot" width="256"/>
 
-This is the CLI for [wunshot](https://wunshot.dev/)
+# wunshot CLI
+
+This is the CLI/TUI for [wunshot](https://wunshot.dev/)
+
+```sh
+npx wunshot
+```
 
 > 🚧 **Caution:** This is a work in progress. Follow along with updates on my [Twitter/X](https://x.com/lotap_dev) 🚧
 
