@@ -37,7 +37,7 @@ export default defineConfig({
         {
           label: "Getting Started",
           items: [
-            { label: "Introduction", slug: "getting-started" },
+            { label: "Introduction", slug: "getting-started/introduction" },
             { label: "Installation", slug: "getting-started/installation" },
             {
               label: "The wunshot Way",
@@ -45,25 +45,64 @@ export default defineConfig({
             },
             {
               label: "Base Initialization",
-              slug: "getting-started/base-schema-and-user-operations",
+              slug: "getting-started/base-initialization",
             },
           ],
         },
         {
-          label: "Authentication",
-          badge: {
-            text: "In Development - Updates Coming Soon",
-            variant: "caution",
-          },
+          label: "Auth",
           items: [
             { label: "Overview", slug: "auth/overview" },
-            { label: "Base Models", slug: "auth/base-models" },
-            { label: "Base Ops", slug: "auth/base-ops" },
-            // { label: "Storage Approaches", slug: "auth/storage-approaches" },
-            // { label: "Sessions", slug: "auth/sessions" },
-            { label: "Username & Password", slug: "auth/username-password" },
-            // { label: "Magic Code", slug: "auth/magic-code" },
-            // { label: "OAuth", slug: "auth/oauth" },
+            {
+              label: "Initialization",
+              slug: "auth/auth-initialization",
+            },
+            {
+              label: "Strategies",
+              items: [
+                {
+                  label: "Username & Password",
+                  slug: "auth/strategies/username-password",
+                  badge: { text: "beta", variant: "note" },
+                },
+                {
+                  label: "Magic Code",
+                  slug: "auth/strategies/magic-code",
+                  attrs: {
+                    style:
+                      "cursor: not-allowed; opacity: 0.5; pointer-events: none",
+                  },
+                  badge: { text: "soon", variant: "danger" },
+                },
+                {
+                  label: "OAuth",
+                  slug: "auth/strategies/oauth",
+                  attrs: {
+                    style:
+                      "cursor: not-allowed; opacity: 0.5; pointer-events: none",
+                  },
+                  badge: { text: "soon", variant: "danger" },
+                },
+              ],
+            },
+            {
+              label: "Guests (Unauthenticated Users)",
+              slug: "auth/guests",
+              badge: { text: "in dev", variant: "caution" },
+              attrs: {
+                style:
+                  "cursor: not-allowed; opacity: 0.5; pointer-events: none",
+              },
+            },
+            {
+              label: "Rate Limiting",
+              slug: "auth/rate-limiting",
+              badge: { text: "in dev", variant: "caution" },
+              attrs: {
+                style:
+                  "cursor: not-allowed; opacity: 0.5; pointer-events: none",
+              },
+            },
           ],
         },
       ],
@@ -78,6 +117,16 @@ export default defineConfig({
       ],
     }),
   ],
+  redirects: {
+    "/getting-started": {
+      status: 302,
+      destination: "/getting-started/introduction",
+    },
+    "/auth": {
+      status: 302,
+      destination: "/auth/overview",
+    },
+  },
   vite: {
     plugins: [tailwindcss()],
   },

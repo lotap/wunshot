@@ -1,10 +1,10 @@
 <img src="./apps/docs/src/assets/images/wordmark-duo.svg" alt="wunshot" width="256"/>
 
-_A user platform you can copy and paste._ 👤
+_The modular backend you can copy and paste._ 👤
 
 A collection of schemas and functions designed to help you build secure, efficient, feature-filled backends faster. Built on top of [Drizzle ORM](https://orm.drizzle.team/docs/overview). Free. Open-source. Type Safe. Frontend Agnostic. **Use this to build your backend _without_ a service.**
 
-[GET STARTED](https://wunshot.dev/getting-started/)
+[GET STARTED](https://wunshot.dev/getting-started/introduction)
 
 > 🚧 **Caution:** This is a work in progress. Follow along with updates on my [Twitter/X](https://x.com/lotap_dev) 🚧
 
