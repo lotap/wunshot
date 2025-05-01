@@ -1,5 +1,5 @@
 ---
-title: Authentication Overview
+title: Auth Overview
 ---
 
 The auth modules utilize a combination of JWTs and a `sessions` table to manage user authentication state.
@@ -53,13 +53,13 @@ Sessions in wunshot are stored in the database. [Read more about the methodology
 
 #### Schema
 
-| Column       | Type         | Description                                                          |
-| ------------ | ------------ | -------------------------------------------------------------------- |
-| `id`         | `uuid`       | Primary Key                                                          |
-| `user_id`    | `uuid`       | Foreign Key for users table `id`                                     |
-| `nonce_hash` | `text`       | [Hashed random value used for verification](#nonces) |
-| `expires_at` | `timestampz` | When the session expires                                             |
-| ...          | ...          | Other standard columns like `created_at`, `updated_at`, etc.         |
+| Column       | Type         | Description                                                  |
+| ------------ | ------------ | ------------------------------------------------------------ |
+| `id`         | `uuid`       | Primary Key                                                  |
+| `user_id`    | `uuid`       | Foreign Key for users table `id`                             |
+| `nonce_hash` | `text`       | [Hashed random value used for verification](#nonces)         |
+| `expires_at` | `timestampz` | When the session expires                                     |
+| ...          | ...          | Other standard columns like `created_at`, `updated_at`, etc. |
 
 ### What Is an `accessToken`?
 
@@ -204,6 +204,7 @@ Secrets in wunshot use a combination of salting and hash-key derivation to keep 
 That said, it is best practice to rotate secrets regularly to prevent unauthorized access.
 
 The signing functions in wunshot expect secrets to be in the format of:
+
 ```ini
 TOKEN_SECRETS=`{id1}:{secret1},{id2}:{secret2},{id3}:{secret3}`
 ```
@@ -225,6 +226,7 @@ While not useful for a targeted attack, it could be used if an exploit affects m
 There is no explicit secret management or time limit implementation within wunshot.
 
 Here are some example functions you can use:
+
 ```ts
 export function generateSecretPair() {
   return `${crypto.randomUUID()}:${crypto
@@ -420,7 +422,7 @@ refreshAuthOp <--> sessions
 Refreshing is done with the `refreshToken` after the `accessToken` expires.
 
 The token is sent with a request and passes through multiple stages of validation.
-Then a fresh `refreshToken` and `accessToken` token are generated and the session is updated with a new `nonce_hash`. 
+Then a fresh `refreshToken` and `accessToken` token are generated and the session is updated with a new `nonce_hash`.
 
 The tokens and fields from the `accessToken` payload are returned to the router.
 

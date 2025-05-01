@@ -1,3 +1,5 @@
+<img src="./src/assets/images/wordmark-duo.svg" alt="wunshot" width="256"/>
+
 # wunshot Docs
 
 [READ THE DOCS](https://wunshot.dev/)
