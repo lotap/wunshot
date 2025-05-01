@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@astrojs/check": "^0.9.4",
-    "@astrojs/starlight": "^0.34.1",
+    "@astrojs/starlight": "^0.34.2",
     "@astrojs/starlight-tailwind": "^4.0.1",
     "@fontsource-variable/mulish": "^5.0.21",
     "@fontsource-variable/rubik": "^5.1.0",
