@@ -55,7 +55,7 @@ export default defineConfig({
             { label: "Overview", slug: "auth/overview" },
             {
               label: "Initialization",
-              slug: "auth/auth-initialization",
+              slug: "auth/initialization",
             },
             {
               label: "Strategies",
@@ -85,18 +85,27 @@ export default defineConfig({
                 },
               ],
             },
+          ],
+        },
+        {
+          label: "Guests (Unauthenticated Users)",
+          items: [
             {
-              label: "Guests (Unauthenticated Users)",
-              slug: "auth/guests",
+              label: "Overview",
+              slug: "guests/overview",
               badge: { text: "in dev", variant: "caution" },
               attrs: {
                 style:
                   "cursor: not-allowed; opacity: 0.5; pointer-events: none",
               },
             },
+          ],
+        },
+        {
+          label: "Rate Limiting",
+          items: [
             {
-              label: "Rate Limiting",
-              slug: "auth/rate-limiting",
+              slug: "rate-limiting/overview",
               badge: { text: "in dev", variant: "caution" },
               attrs: {
                 style:
@@ -125,6 +134,14 @@ export default defineConfig({
     "/auth": {
       status: 302,
       destination: "/auth/overview",
+    },
+    "/guests": {
+      status: 302,
+      destination: "/guests/overview",
+    },
+    "/rate-limiting": {
+      status: 302,
+      destination: "/rate-limiting/overview",
     },
   },
   vite: {
