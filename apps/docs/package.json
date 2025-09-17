@@ -22,7 +22,7 @@
     "@fontsource-variable/mulish": "^5.0.21",
     "@fontsource-variable/rubik": "^5.1.0",
     "@tailwindcss/vite": "^4.1.5",
-    "astro": "^5.7.10",
+    "astro": "^5.13.8",
     "playwright": "^1.51.1",
     "rehype-mermaid": "^3.0.0",
     "sharp": "^0.34.1",
