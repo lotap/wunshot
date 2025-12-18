@@ -19,19 +19,19 @@
     "@astrojs/check": "^0.9.6",
     "@astrojs/starlight": "^0.37.1",
     "@astrojs/starlight-tailwind": "^4.0.2",
-    "@fontsource-variable/mulish": "^5.0.21",
-    "@fontsource-variable/rubik": "^5.1.0",
-    "@tailwindcss/vite": "^4.1.5",
+    "@fontsource-variable/mulish": "^5.2.8",
+    "@fontsource-variable/rubik": "^5.2.8",
+    "@tailwindcss/vite": "^4.1.18",
     "astro": "^5.16.6",
-    "playwright": "^1.51.1",
+    "playwright": "^1.57.0",
     "rehype-mermaid": "^3.0.0",
-    "sharp": "^0.34.1",
-    "tailwindcss": "^4.1.5",
-    "typescript": "^5.8.3"
+    "sharp": "^0.34.5",
+    "tailwindcss": "^4.1.18",
+    "typescript": "^5.9.3"
   },
   "devDependencies": {
-    "eslint-plugin-mdx": "^3.4.1",
-    "prettier": "^3.3.3",
+    "eslint-plugin-mdx": "^3.6.2",
+    "prettier": "^3.7.4",
     "prettier-plugin-astro": "^0.14.1"
   }
 }
