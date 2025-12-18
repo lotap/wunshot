@@ -88,7 +88,7 @@ export default defineConfig({
           ],
         },
         {
-          label: "Guests (Unauthenticated Users)",
+          label: "Guests (Unauthenticated Sessions)",
           items: [
             {
               label: "Overview",

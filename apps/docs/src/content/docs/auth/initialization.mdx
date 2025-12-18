@@ -557,18 +557,25 @@ export async function createSession(
 }
 ```
 
+:::caution
+There are some [bugs](https://github.com/napi-rs/node-rs/issues/862) [affecting](https://github.com/cloudflare/workers-sdk/issues/8405) `node-rs` on Cloudflare workers.
+
+Also, be aware that the CPU time of the hashing function will likely be over the 10ms limit on the workers free tier.
+:::
+
 ```ts title="#/ops/auth/internals/hashing.ts"
 import { hash, verify, type Options } from "@node-rs/argon2";
 
 /**
- * Options based on OWASP recommendations
+ * Options based on OWASP recommendations.
+ * You should tweak the parameters to your needs, but this is a good baseline
  * https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#argon2id
  * cross-reference https://tobtu.com/minimum-password-settings/
  */
 const options: Options = {
   algorithm: 2, // Argon2id
-  memoryCost: 32768, // 32 MiB <- Stronger than OWASP recs to account for stronger gpus now available
-  timeCost: 2,
+  memoryCost: 13312, // 13 MiB <- Stronger than OWASP recs to account for stronger gpus now available
+  timeCost: 3,
   outputLen: 32,
   parallelism: 1,
 };
