@@ -55,6 +55,77 @@ export const archivedAt = pgTimestamp("archived_at", TIMESTAMPTZ_CONFIG)
   .defaultNow();
 ```
 
+```ts title="#/helpers/funcs.ts"
+import type { PreparedQueryConfig, PgPreparedQuery } from "drizzle-orm/pg-core";
+import * as v from "valibot";
+
+import { db } from "#/index";
+
+import type { QueryExecutor, Tx } from "./types";
+
+type StmtParams = [qx: QueryExecutor, label?: string];
+
+/**
+ * Convenience function to reduce boilerplate for writing prepared statements.
+ *
+ * THIS DOES NOT RETURN A STATEMENT DIRECTLY. It returns a function that returns a statement.
+ *
+ * This allows a single definition for the statement to be run on the database normally OR as part of a transaction.
+ *
+ * Useful for enforcing the shape of stmt functions used as params for {@link createQueryFn}
+ */
+export function createStmtFn<T extends PgPreparedQuery<PreparedQueryConfig>>(
+  fn: (...[qx, label]: StmtParams) => T,
+) {
+  return (...[qx, label = "default"]: StmtParams) => fn(qx, label);
+}
+
+type GenericValidationError = v.ErrorMessage<v.BaseIssue<unknown>> | undefined;
+
+type GenericObjectValidationSchema = v.ObjectSchema<
+  v.ObjectEntries,
+  GenericValidationError
+>;
+
+/**
+ * Convenience function to reduce boilerplate for writing functions that query the database.
+ *
+ * The function returned automatically handles typing for the input based on the validation schema and using a transaction if one is provided.
+ */
+export function createQueryFn<
+  VSchema extends
+    | GenericObjectValidationSchema
+    | v.VariantSchema<
+        string,
+        GenericObjectValidationSchema[],
+        GenericValidationError
+      >,
+  Stmt extends PgPreparedQuery<PreparedQueryConfig>,
+>({
+  vSchema,
+  stmtFn,
+  defaultStmt,
+}: {
+  vSchema: VSchema;
+  stmtFn: ReturnType<typeof createStmtFn<Stmt>>;
+  defaultStmt?: ReturnType<ReturnType<typeof createStmtFn<Stmt>>>;
+}) {
+  return async (
+    input: v.InferInput<typeof vSchema>,
+    viaTx?: { tx: Tx; label: string },
+  ) => {
+    const stmt = viaTx
+      ? stmtFn(viaTx.tx, viaTx.label)
+      : (defaultStmt ?? stmtFn(db));
+
+    const data = await stmt.execute(v.parse(vSchema, input));
+
+    return data as Awaited<ReturnType<Stmt["execute"]>>;
+  };
+}
+
+```
+
 ```ts title="#/helpers/types.ts"
 import { type db } from "#/index";
 
@@ -78,6 +149,7 @@ export type OpsSafeReturn<
       message?: never;
     }
   | { success: false; data?: never; message?: M };
+
 ```
 
 ## Models
@@ -156,115 +228,77 @@ import * as v from "valibot";
 
 import { users } from "./schemas";
 
-// === PRIMITIVES ===
+//// PRIMITIVES ////
 
 const { id } = createSelectSchema(users).entries;
 
-// === INSERT ===
+//// INSERT ////
 
-export const InsertUser = v.object({});
+export const Insert = v.object({});
 
-// === SELECT ===
+//// SELECT ////
 
-export const SelectUser = v.object({ id });
+export const Select = v.object({ id });
 ```
 
 ```ts title="#/models/users/queries.ts"
 import { eq, getTableColumns, sql } from "drizzle-orm";
-import { parse, type InferInput } from "valibot";
-
-import { type QueryExecutor, type Tx } from "#/helpers/types";
-import { db } from "#/index";
 
 import { users } from "./schemas";
-import { InsertUser, SelectUser } from "./validations";
+import * as V from "./validations";
+import { createQueryFn, createStmtFn } from "#/helpers/funcs";
 
-// === INSERT ===
+//// PRIMITIVES ////
 
-const insertUserStmt = ({
-  qx,
-  label = "",
-}: {
-  qx: QueryExecutor;
-  label?: string;
-}) =>
+const { id } = getTableColumns(users);
+
+//// INSERT ////
+
+const insertStmt = createStmtFn((qx, label) =>
   qx
     .insert(users)
     .values({})
-    .returning({ id: users.id })
-    .prepare(`insert_user_${label}`);
+    .returning()
+    .prepare(`user_insert_${label}`),
+);
 
-const insertUserDefault = insertUserStmt({ qx: db });
+export const insert = createQueryFn({ vSchema: V.Insert, stmtFn: insertStmt });
 
-export async function insertUser(
-  input: InferInput<typeof InsertUser>,
-  viaTx?: { tx: Tx; label: string },
-) {
-  const _insertUser = viaTx
-    ? insertUserStmt({ qx: viaTx.tx, label: viaTx.label })
-    : insertUserDefault;
+//// SELECT ////
 
-  const [data] = await _insertUser.execute(parse(InsertUser, input));
-
-  return data!;
-}
-
-// === SELECT ===
-
-/** Filter out id. Since it is required for the select input, there's no reason to return it */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const { id: idCol, ...userReturnValues } = getTableColumns(users);
-
-const selectUserStmt = ({
-  qx,
-  label = "",
-}: {
-  qx: QueryExecutor;
-  label?: string;
-}) =>
+const selectStmt = createStmtFn((qx, label) =>
   qx
-    .select(userReturnValues)
+    .select()
     .from(users)
-    .where(eq(users.id, sql.placeholder("id")))
+    .where(eq(id, sql.placeholder("id")))
     .limit(1)
-    .prepare(`select_user_${label}`);
+    .prepare(`user_select_${label}`),
+);
 
-const selectUserDefault = selectUserStmt({ qx: db });
+export const select = createQueryFn({ vSchema: V.Select, stmtFn: selectStmt });
 
-export async function selectUser(
-  input: InferInput<typeof SelectUser>,
-  viaTx?: { tx: Tx; label: string },
-) {
-  const _selectUser = viaTx
-    ? selectUserStmt({ qx: viaTx.tx, label: viaTx.label })
-    : selectUserDefault;
-
-  const [data] = await _selectUser.execute(parse(SelectUser, input));
-
-  return data;
-}
 ```
 
-```ts title="#/models/users/cascades.ts"
+```ts
 import { eq } from "drizzle-orm";
 
 import { txDb } from "#/index";
 import { type Tx } from "#/helpers/types";
 import { activities } from "#/models/activities/schemas";
 
-import { selectUser } from "./queries";
+import * as queries from "./queries";
 import { users, usersArchive } from "./schemas";
 
 export const USER_NOT_FOUND = "User not found";
 
 /** Adds given id to the usersArchive, handles related cascades, and removes it from users */
 export function archiveUser(
-  input: Parameters<typeof selectUser>[0],
+  input: Parameters<typeof queries.select>[0],
   externalTx?: Tx,
 ) {
   const _archiveUser = async (tx: Tx) => {
     /** Find the existing row data */
-    const rowData = await selectUser(input, { tx, label: "archive_user" });
+    const [rowData] = await queries.select(input, { tx, label: "archive" });
 
     /** Throw a named error if no user is found */
     if (!rowData) throw new Error(USER_NOT_FOUND);
@@ -293,6 +327,7 @@ export function archiveUser(
   /** Process with a newly generated transaction */
   return txDb.transaction((tx) => _archiveUser(tx));
 }
+
 ```
 
 ### Activities
@@ -377,29 +412,29 @@ export const activitiesArchive = pgTable("activities_archive", {
 ```
 
 ```ts title="#/models/activities/validations.ts"
-import { createInsertSchema } from "drizzle-valibot";
+import { createInsertSchema, createSelectSchema } from "drizzle-valibot";
 import * as v from "valibot";
 
 import { activities } from "./schemas";
 
-// === PRIMITIVES ===
+//// PRIMITIVES ////
 
 const { id } = createSelectSchema(activities).entries;
 
 const { label, failureCause, meta, userId } =
   createInsertSchema(activities).entries;
 
-// === INSERT ===
+//// INSERT ////
 
-const insertActivityBaseVariant = {
+const insertBaseVariant = {
   label,
   userId: v.nullish(v.unwrap(userId), null),
   meta: v.nullish(v.unwrap(meta), null),
 };
 
-export const InsertActivity = v.variant("success", [
+export const Insert = v.variant("success", [
   v.object({
-    ...insertActivityBaseVariant,
+    ...insertBaseVariant,
     success: v.literal(true),
     failureCause: v.nullish(v.null(), null),
   }),
@@ -408,36 +443,45 @@ export const InsertActivity = v.variant("success", [
    * That's how it was originally written, but it became complicated to update/maintain
    **/
   v.object({
-    ...insertActivityBaseVariant,
+    ...insertBaseVariant,
     success: v.literal(false),
     failureCause: v.nonNullish(failureCause),
   }),
 ]);
 
-// === SELECT ===
+//// SELECT ////
 
-export const SelectActivity = v.object({ id });
+export const Select = v.object({ id });
+
 ```
 
 ```ts title="#/models/activities/queries.ts"
-import { getTableColumns, sql } from "drizzle-orm";
-import { parse, type InferInput } from "valibot";
+import { and, eq, getTableColumns, isNotNull, or, sql } from "drizzle-orm";
 
-import { type QueryExecutor, type Tx } from "#/helpers/types";
+import { createQueryFn, createStmtFn } from "#/helpers/funcs";
 import { db } from "#/index";
 
 import { activities } from "./schemas";
-import { InsertActivity, SelectActivity } from "./validations";
+import * as V from "./validations";
+import { excessiveActivities } from "./views";
 
-// === INSERT ===
+//// PRIMITIVES ////
 
-const insertActivityStmt = ({
-  qx,
-  label = "",
-}: {
-  qx: QueryExecutor;
-  label?: string;
-}) =>
+const {
+  id,
+  failureCause,
+  label: labelCol,
+  meta,
+  success,
+  userId,
+  usersArchiveId,
+  weight,
+  timestamp,
+} = getTableColumns(activities);
+
+//// INSERT ////
+
+const insertStmt = createStmtFn((qx, label = "") =>
   qx
     .insert(activities)
     .values({
@@ -447,58 +491,33 @@ const insertActivityStmt = ({
       failureCause: sql.placeholder("failureCause"),
       meta: sql.placeholder("meta"),
     })
-    .returning({ id: activities.id })
-    .prepare(`insert_activity_${label}`);
+    .returning({ id })
+    .prepare(`activity_insert_${label}`),
+);
 
-const insertActivityDefault = insertActivityStmt({ qx: db });
+export const insert = createQueryFn({ vSchema: V.Insert, stmtFn: insertStmt });
 
-export async function insertActivity(
-  input: InferInput<typeof InsertActivity>,
-  viaTx?: { tx: Tx; label: string },
-) {
-  const _insertActivity = viaTx
-    ? insertActivityStmt({ qx: viaTx.tx, label: viaTx.label })
-    : insertActivityDefault;
+//// SELECT ////
 
-  const [data] = await _insertActivity.execute(parse(InsertActivity, input));
-
-  return data!;
-}
-
-// === SELECT ===
-
-/** Filter out id. Since it is required for the select input, there's no reason to return it */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const { id: idCol, ...activitiesReturnValues } = getTableColumns(activities);
-
-const selectActivityStmt = ({
-  qx,
-  label = "",
-}: {
-  qx: QueryExecutor;
-  label?: string;
-}) =>
+const selectStmt = createStmtFn((qx, label) =>
   qx
-    .select(activitiesReturnValues)
+    .select({
+      failureCause,
+      label: labelCol,
+      meta,
+      success,
+      userId,
+      usersArchiveId,
+      timestamp,
+    })
     .from(activities)
-    .where(eq(activities.id, sql.placeholder("id")))
+    .where(eq(id, sql.placeholder("id")))
     .limit(1)
-    .prepare(`select_activity_${label}`);
+    .prepare(`activity_select_${label}`),
+);
 
-const selectActivityDefault = selectActivityStmt({ qx: db });
+export const select = createQueryFn({ vSchema: V.Select, stmtFn: selectStmt });
 
-export async function selectActivity(
-  input: InferInput<typeof SelectActivity>,
-  viaTx?: { tx: Tx; label: string },
-) {
-  const _selectActivity = viaTx
-    ? selectActivityStmt({ qx: viaTx.tx, label: viaTx.label })
-    : selectActivityDefault;
-
-  const [data] = await _selectActivity.execute(parse(SelectActivity, input));
-
-  return data;
-}
 ```
 
 ```ts title="#/models/activities/cascades.ts"
@@ -507,19 +526,19 @@ import { eq } from "drizzle-orm";
 import { txDb } from "#/index";
 import { type Tx } from "#/helpers/types";
 
-import { selectActivity } from "./queries";
+import * as queries from "./queries";
 import { activities, activitiesArchive } from "./schemas";
 
 export const ACTIVITY_NOT_FOUND = "Activity not found";
 
 /** Adds given id to the activitiesArchive, handles related cascades, and removes it from activities */
 export function archiveActivity(
-  input: Parameters<typeof selectActivity>[0],
+  input: Parameters<typeof queries.select>[0],
   externalTx?: Tx,
 ) {
   const _archiveActivity = async (tx: Tx) => {
     /** Find the existing row data */
-    const rowData = await selectActivity(input, {
+    const [rowData] = await selectActivity(input, {
       tx,
       label: "archive_activity",
     });
@@ -555,8 +574,8 @@ export function archiveActivity(
 import { serializeError } from "serialize-error";
 import { type InferInput } from "valibot";
 
-import { insertActivity } from "#/models/activities/queries";
-import { type InsertActivity } from "#/models/activities/validations";
+import { insert as insertActivity } from "#/models/activities/queries";
+import { type Insert as InsertActivity } from "#/models/activities/validations";
 
 type InsertActivityInput = InferInput<typeof InsertActivity>;
 
