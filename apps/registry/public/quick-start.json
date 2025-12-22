@@ -1,0 +1,30 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "quick-start",
+  "title": "Quick Start",
+  "description": "Initialize your wunshot project",
+  "dependencies": [
+    "drizzle-orm"
+  ],
+  "files": [
+    {
+      "path": "modules/core/helpers/consts.ts",
+      "content": "export const TIMESTAMPTZ_CONFIG = { withTimezone: true } as const;\n",
+      "type": "registry:lib",
+      "target": "db/helpers/consts.ts"
+    },
+    {
+      "path": "modules/core/helpers/cols.ts",
+      "content": "import { bigint, timestamp as pgTimestamp, uuid } from \"drizzle-orm/pg-core\";\n\nimport { TIMESTAMPTZ_CONFIG } from \"./consts\";\n\n//// Ids ////\n\nexport const id = bigint(\"id\", { mode: \"bigint\" }).primaryKey();\n\nexport const randomId = uuid(\"id\").primaryKey();\n\n//// Timestamps ////\n\nexport const timestamp = pgTimestamp(\"timestamp\", TIMESTAMPTZ_CONFIG).notNull();\n\nexport const createdAt = pgTimestamp(\n  \"created_at\",\n  TIMESTAMPTZ_CONFIG\n).notNull();\n\nexport const updatedAt = pgTimestamp(\"updated_at\", TIMESTAMPTZ_CONFIG);\n\nexport const archivedAt = pgTimestamp(\"archived_at\", TIMESTAMPTZ_CONFIG)\n  .notNull()\n  .defaultNow();\n",
+      "type": "registry:lib",
+      "target": "db/helpers/cols.ts"
+    },
+    {
+      "path": "modules/core/models/users/schemas.ts",
+      "content": "import { pgTable } from \"drizzle-orm/pg-core\";\n\nimport {\n  archivedAt,\n  createdAt,\n  randomId,\n  updatedAt,\n} from \"@/modules/core/helpers/cols\";\n\nexport const users = pgTable(\"users\", {\n  id: randomId.defaultRandom(),\n  createdAt: createdAt.defaultNow(),\n  updatedAt,\n});\n\nexport const usersArchive = pgTable(\"users_archive\", {\n  id: randomId,\n  createdAt,\n  updatedAt,\n  archivedAt,\n});\n",
+      "type": "registry:lib",
+      "target": "db/models/users/schemas.ts"
+    }
+  ],
+  "type": "registry:block"
+}
