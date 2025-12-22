@@ -38,7 +38,11 @@ export default defineConfig({
           label: "Getting Started",
           items: [
             { label: "Introduction", slug: "getting-started/introduction" },
-            { label: "Installation", slug: "getting-started/installation" },
+            { label: "Quick Start", slug: "getting-started/quick-start" },
+            {
+              label: "Manual Installation",
+              slug: "getting-started/manual-installation",
+            },
             {
               label: "The wunshot Way",
               slug: "getting-started/the-wunshot-way",

@@ -1,0 +1,232 @@
+---
+title: Quick Start
+---
+
+import {
+  // FileTree,
+  LinkCard,
+  Steps,
+  Tabs,
+  TabItem,
+} from "@astrojs/starlight/components";
+
+<LinkCard title="Read the intro" href="/getting-started/introduction" />
+
+## Prerequisites
+
+Before proceeding, make sure you have a typescript project and access to a postgresql database.
+
+You will need the database connection URL available as an environment variable called `DB_URL`. (You can configure the expected name in `@/db/index.ts` and `drizzle.config.ts`)
+
+## With Shadcn
+
+:::caution
+**Experimental**
+
+Be aware that the shadcn cli is intended for use with frontend frameworks. It doesn't have a great way to handle when wunshot modules require changes to a core model. It is recommended to **always commit changes before adding a module and to investigate any overwrites to the core models carefully.**
+:::
+
+<Steps>
+
+1.  Add the registry to your <a href="https://ui.shadcn.com/docs/components-json">`components.json`</a>
+
+    ```json title="components.json"
+      // ...
+      "registries": {
+        "@wunshot": "https://registry.wunshot.dev/{name}.json"
+      }
+    ```
+
+2.  Use your preferred package manager with the <a href="https://ui.shadcn.com/docs/cli#add" target="_blank" rel="noopener noreferrer">shadcn cli</a>
+
+    <Tabs syncKey="packageManager">
+
+      <TabItem label="pnpm">
+
+        ```sh
+          pnpm dlx shadcn@latest add @wunshot/init
+        ```
+
+      </TabItem>
+
+      <TabItem label="npm">
+
+        ```sh
+          npx shadcn@latest add @wunshot/init
+        ```
+
+      </TabItem>
+
+      <TabItem label="yarn">
+
+        ```sh
+          yarn shadcn@latest add @wunshot/init
+        ```
+
+      </TabItem>
+
+      <TabItem label="bun">
+
+        ```sh
+          bunx --bun shadcn@latest add @wunshot/init
+        ```
+
+      </TabItem>
+
+    </Tabs>
+
+    {/* This should automatically install dependencies and create a `db` folder in your project like this: */}
+
+        {/* <FileTree>
+
+        - db
+          - helpers
+            - cols.ts
+            - consts.ts
+            - funcs.ts
+            - types.ts
+          - models
+            - users
+              - cascades.ts
+              - queries.ts
+              - schemas.ts
+              - validations.ts
+            - activities
+              - cascades.ts
+              - queries.ts
+              - schemas.ts
+              - validations.ts
+          - index.ts
+        - drizzle.config.ts
+
+        </FileTree> */}
+
+    :::note
+    You may need to update the driver based on your database provider. The `node-postgres` driver is used by default. You can configure the driver in `@/db/index.ts`
+    :::
+
+3.  Add scripts to your `package.json`
+
+    <Tabs syncKey="packageManager">
+
+      <TabItem label="pnpm">
+
+        ```json title="package.json"
+        {
+          // ...
+          "scripts": {
+            // ...
+            "db": "drizzle-kit",
+            "db:drop": "pnpm run db -- drop",
+            "db:generate": "pnpm run db -- generate",
+            "db:migrate": "pnpm run db -- migrate",
+            "db:push": "pnpm run db -- push",
+            "db:studio": "pnpm run db -- studio"
+          }
+          // ...
+        }
+        ```
+
+      </TabItem>
+
+      <TabItem label="npm">
+
+        ```json title="package.json"
+        {
+          // ...
+          "scripts": {
+            // ...
+            "db": "drizzle-kit",
+            "db:drop": "npm run db -- drop",
+            "db:generate": "npm run db -- generate",
+            "db:migrate": "npm run db -- migrate",
+            "db:push": "npm run db -- push",
+            "db:studio": "npm run db -- studio"
+          }
+          // ...
+        }
+        ```
+
+      </TabItem>
+
+      <TabItem label="yarn">
+
+        ```json title="package.json"
+        {
+          // ...
+          "scripts": {
+            // ...
+            "db": "drizzle-kit",
+            "db:drop": "yarn run db -- drop",
+            "db:generate": "yarn run db -- generate",
+            "db:migrate": "yarn run db -- migrate",
+            "db:push": "yarn run db -- push",
+            "db:studio": "yarn run db -- studio"
+          }
+          // ...
+        }
+        ```
+
+      </TabItem>
+
+      <TabItem label="bun">
+
+        ```json title="package.json"
+        {
+          // ...
+          "scripts": {
+            // ...
+            "db": "bun run --bun drizzle-kit",
+            "db:drop": "bun run db -- drop",
+            "db:generate": "bun run db -- generate",
+            "db:migrate": "bun run db -- migrate",
+            "db:push": "bun run db -- push",
+            "db:studio": "bun run db -- studio"
+          }
+          // ...
+        }
+        ```
+
+      </TabItem>
+
+    </Tabs>
+
+4.  Generate and apply migrations
+
+    <Tabs syncKey="packageManager">
+
+      <TabItem label="pnpm">
+
+        ```sh
+          pnpm run db:generate && pnpm run db:migrate
+        ```
+
+      </TabItem>
+
+      <TabItem label="npm">
+
+        ```sh
+          npm run db:generate && npm run db:migrate
+        ```
+
+      </TabItem>
+
+      <TabItem label="yarn">
+
+        ```sh
+          yarn run db:generate && yarn run db:migrate
+        ```
+
+      </TabItem>
+
+      <TabItem label="bun">
+
+        ```sh
+          bun run db:generate && bun run db:migrate
+        ```
+
+      </TabItem>
+
+    </Tabs>
+
+</Steps>
