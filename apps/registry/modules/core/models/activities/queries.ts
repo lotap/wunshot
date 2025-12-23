@@ -2,8 +2,8 @@ import { eq, getTableColumns, sql } from "drizzle-orm";
 
 import { createQueryFn, createStmtFn } from "@/modules/core/helpers/funcs";
 
-import { activities } from "@/modules/core/models/activities/schemas";
-import * as V from "@/modules/core/models/activities/validations";
+import { activities } from "./schemas";
+import * as V from "./validations";
 
 //// PRIMITIVES ////
 

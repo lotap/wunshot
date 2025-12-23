@@ -8,7 +8,8 @@ import type {
 import * as v from "valibot";
 
 import { db } from "@/modules/core/index";
-import type { QueryExecutor, Tx } from "@/modules/core/helpers/types";
+
+import type { QueryExecutor, Tx } from "./types";
 
 type StmtParams = [qx: QueryExecutor, label?: string];
 
@@ -88,9 +89,13 @@ export function createArchiveFn<T extends Record<string, string | bigint>>({
 }: {
   selectFn: (input: T, viaTx?: { tx: Tx; label: string }) => Promise<unknown>;
   activeTable: PgTable & Record<keyof T, PgColumn>;
-  archiveTable: PgTable;
+  archiveTable: PgTable & { archiveId: PgColumn };
   selectBy?: keyof T;
-  cascades?: (tx: Tx, selector: T[keyof T]) => Promise<unknown>[];
+  cascades?: (
+    tx: Tx,
+    selector: T[keyof T],
+    archiveIds: bigint[]
+  ) => Promise<unknown>[];
 }) {
   return (input: Parameters<typeof selectFn>[0], externalTx?: Tx) => {
     const _archive = async (tx: Tx) => {
@@ -109,12 +114,20 @@ export function createArchiveFn<T extends Record<string, string | bigint>>({
       const selector = input[selectBy];
 
       // Insert the data into the archive table
-      await tx
+      const archiveRows = await tx
         .insert(archiveTable)
-        .values(rowData.map((row) => ({ ...row, [selectBy]: selector })));
+        .values(rowData.map((row) => ({ ...row, [selectBy]: selector })))
+        .returning({ archiveId: activeTable.archiveId });
 
       // Process cascades concurrently
-      if (cascades) await Promise.all(cascades(tx, selector));
+      if (cascades)
+        await Promise.all(
+          cascades(
+            tx,
+            selector,
+            archiveRows.map((row) => row.archiveId as bigint)
+          )
+        );
 
       // Delete the row data from the active table
       await tx.delete(activeTable).where(eq(activeTable[selectBy], selector));

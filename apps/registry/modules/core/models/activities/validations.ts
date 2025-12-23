@@ -1,7 +1,7 @@
 import { createInsertSchema, createSelectSchema } from "drizzle-valibot";
 import * as v from "valibot";
 
-import { activities } from "@/modules/core/models/activities/schemas";
+import { activities } from "./schemas";
 
 //// PRIMITIVES ////
 

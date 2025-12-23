@@ -1,10 +1,7 @@
 import { createArchiveFn } from "@/modules/core/helpers/funcs";
 
-import * as queries from "@/modules/core/models/activities/queries";
-import {
-  activities,
-  activitiesArchive,
-} from "@/modules/core/models/activities/schemas";
+import * as queries from "./queries";
+import { activities, activitiesArchive } from "./schemas";
 
 /** Adds given id to the activitiesArchive, handles related cascades, and removes it from activities */
 export const archive = createArchiveFn({
