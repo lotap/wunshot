@@ -37,7 +37,7 @@ Be aware that the shadcn cli is intended for use with frontend frameworks. It do
       }
     ```
 
-2.  Use your preferred package manager with the <a href="https://ui.shadcn.com/docs/cli#add" target="_blank" rel="noopener noreferrer">shadcn cli</a>
+1.  Use your preferred package manager with the <a href="https://ui.shadcn.com/docs/cli#add" target="_blank" rel="noopener noreferrer">shadcn cli</a>
 
     <Tabs syncKey="packageManager">
 
@@ -101,11 +101,13 @@ Be aware that the shadcn cli is intended for use with frontend frameworks. It do
 
         </FileTree> */}
 
-    :::note
+    :::tip
     You may need to update the driver based on your database provider. The `node-postgres` driver is used by default. You can configure the driver in `@/db/index.ts`
     :::
 
-3.  Install dev dependencies
+1.  Update the location of `drizzle.config.ts` to the root of your project. The shadcn cli will put it in `@/db` by default.
+
+1.  Install dev dependencies
 
     <Tabs syncKey="packageManager">
 
@@ -143,7 +145,7 @@ Be aware that the shadcn cli is intended for use with frontend frameworks. It do
 
     </Tabs>
 
-4.  Add scripts to your `package.json`
+1.  Add scripts to your `package.json`
 
     <Tabs syncKey="packageManager">
 
@@ -229,7 +231,7 @@ Be aware that the shadcn cli is intended for use with frontend frameworks. It do
 
     </Tabs>
 
-5.  Generate and apply migrations
+1.  Generate and apply migrations
 
     <Tabs syncKey="packageManager">
 
