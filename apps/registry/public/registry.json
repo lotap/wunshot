@@ -4,26 +4,81 @@
   "homepage": "https://registry.wunshot.dev",
   "items": [
     {
-      "name": "quick-start",
+      "name": "init",
       "type": "registry:block",
-      "title": "Quick Start",
+      "title": "Init",
       "description": "Initialize your wunshot project",
-      "dependencies": ["drizzle-orm"],
+      "dependencies": ["drizzle-orm", "pg", "valibot", "drizzle-valibot"],
       "files": [
-        {
-          "path": "modules/core/helpers/consts.ts",
-          "type": "registry:lib",
-          "target": "db/helpers/consts.ts"
-        },
         {
           "path": "modules/core/helpers/cols.ts",
           "type": "registry:lib",
           "target": "db/helpers/cols.ts"
         },
         {
+          "path": "modules/core/helpers/consts.ts",
+          "type": "registry:lib",
+          "target": "db/helpers/consts.ts"
+        },
+        {
+          "path": "modules/core/helpers/funcs.ts",
+          "type": "registry:lib",
+          "target": "db/helpers/funcs.ts"
+        },
+        {
+          "path": "modules/core/helpers/types.ts",
+          "type": "registry:lib",
+          "target": "db/helpers/types.ts"
+        },
+        {
+          "path": "modules/core/models/activities/cascades.ts",
+          "type": "registry:lib",
+          "target": "db/models/activities/cascades.ts"
+        },
+        {
+          "path": "modules/core/models/activities/queries.ts",
+          "type": "registry:lib",
+          "target": "db/models/activities/queries.ts"
+        },
+        {
+          "path": "modules/core/models/activities/schemas.ts",
+          "type": "registry:lib",
+          "target": "db/models/activities/schemas.ts"
+        },
+        {
+          "path": "modules/core/models/activities/validations.ts",
+          "type": "registry:lib",
+          "target": "db/models/activities/validations.ts"
+        },
+        {
+          "path": "modules/core/models/users/cascades.ts",
+          "type": "registry:lib",
+          "target": "db/models/users/cascades.ts"
+        },
+        {
+          "path": "modules/core/models/users/queries.ts",
+          "type": "registry:lib",
+          "target": "db/models/users/queries.ts"
+        },
+        {
           "path": "modules/core/models/users/schemas.ts",
           "type": "registry:lib",
           "target": "db/models/users/schemas.ts"
+        },
+        {
+          "path": "modules/core/models/users/validations.ts",
+          "type": "registry:lib",
+          "target": "db/models/users/validations.ts"
+        },
+        {
+          "path": "modules/core/drizzle.config.ts",
+          "type": "registry:lib",
+          "target": "drizzle.config.ts"
+        },
+        {
+          "path": "modules/core/index.ts",
+          "type": "registry:lib",
+          "target": "db/index.ts"
         }
       ]
     }

@@ -105,7 +105,45 @@ Be aware that the shadcn cli is intended for use with frontend frameworks. It do
     You may need to update the driver based on your database provider. The `node-postgres` driver is used by default. You can configure the driver in `@/db/index.ts`
     :::
 
-3.  Add scripts to your `package.json`
+3.  Install dev dependencies
+
+    <Tabs syncKey="packageManager">
+
+      <TabItem label="pnpm">
+
+        ```sh
+          pnpm add -D drizzle-kit @types/pg
+        ```
+
+      </TabItem>
+
+      <TabItem label="npm">
+
+        ```sh
+          npm i -D drizzle-kit @types/pg
+        ```
+
+      </TabItem>
+
+      <TabItem label="yarn">
+
+        ```sh
+          yarn add -D drizzle-kit @types/pg
+        ```
+
+      </TabItem>
+
+      <TabItem label="bun">
+
+        ```sh
+          bun add -D drizzle-kit @types/pg
+        ```
+
+      </TabItem>
+
+    </Tabs>
+
+4.  Add scripts to your `package.json`
 
     <Tabs syncKey="packageManager">
 
@@ -191,7 +229,7 @@ Be aware that the shadcn cli is intended for use with frontend frameworks. It do
 
     </Tabs>
 
-4.  Generate and apply migrations
+5.  Generate and apply migrations
 
     <Tabs syncKey="packageManager">
 

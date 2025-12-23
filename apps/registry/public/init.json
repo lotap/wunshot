@@ -1,0 +1,99 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "init",
+  "title": "Init",
+  "description": "Initialize your wunshot project",
+  "dependencies": [
+    "drizzle-orm",
+    "pg",
+    "valibot",
+    "drizzle-valibot"
+  ],
+  "files": [
+    {
+      "path": "modules/core/helpers/cols.ts",
+      "content": "import { bigint, timestamp as pgTimestamp, uuid } from \"drizzle-orm/pg-core\";\n\nimport { TIMESTAMPTZ_CONFIG } from \"./consts\";\n\n//// Ids ////\n\nexport const id = bigint(\"id\", { mode: \"bigint\" }).primaryKey();\n\nexport const randomId = uuid(\"id\").primaryKey();\n\n//// Timestamps ////\n\nexport const timestamp = pgTimestamp(\"timestamp\", TIMESTAMPTZ_CONFIG).notNull();\n\nexport const createdAt = pgTimestamp(\n  \"created_at\",\n  TIMESTAMPTZ_CONFIG\n).notNull();\n\nexport const updatedAt = pgTimestamp(\"updated_at\", TIMESTAMPTZ_CONFIG);\n\nexport const archivedAt = pgTimestamp(\"archived_at\", TIMESTAMPTZ_CONFIG)\n  .notNull()\n  .defaultNow();\n",
+      "type": "registry:lib",
+      "target": "db/helpers/cols.ts"
+    },
+    {
+      "path": "modules/core/helpers/consts.ts",
+      "content": "export const TIMESTAMPTZ_CONFIG = { withTimezone: true } as const;\n",
+      "type": "registry:lib",
+      "target": "db/helpers/consts.ts"
+    },
+    {
+      "path": "modules/core/helpers/funcs.ts",
+      "content": "import { eq } from \"drizzle-orm\";\nimport type {\n  PreparedQueryConfig,\n  PgPreparedQuery,\n  PgTable,\n  PgColumn,\n} from \"drizzle-orm/pg-core\";\nimport * as v from \"valibot\";\n\nimport { db } from \"@/modules/core/index\";\nimport type { QueryExecutor, Tx } from \"@/modules/core/helpers/types\";\n\ntype StmtParams = [qx: QueryExecutor, label?: string];\n\n/**\n * Convenience function to reduce boilerplate for writing prepared statements.\n *\n * THIS DOES NOT RETURN A STATEMENT DIRECTLY. It returns a function that returns a statement.\n *\n * This allows a single definition for the statement to be run on the database normally OR as part of a transaction.\n *\n * Useful for enforcing the shape of stmt functions used as params for {@link createQueryFn}\n */\nexport function createStmtFn<T extends PgPreparedQuery<PreparedQueryConfig>>(\n  fn: (...[qx, label]: StmtParams) => T\n) {\n  return (...[qx, label = \"default\"]: StmtParams) => fn(qx, label);\n}\n\ntype GenericValidationError = v.ErrorMessage<v.BaseIssue<unknown>> | undefined;\n\ntype GenericObjectValidationSchema = v.ObjectSchema<\n  v.ObjectEntries,\n  GenericValidationError\n>;\n\n/**\n * Convenience function to reduce boilerplate for writing functions that query the database.\n *\n * The function returned automatically handles typing for the input based on the validation schema and using a transaction if one is provided.\n */\nexport function createQueryFn<\n  VSchema extends\n    | GenericObjectValidationSchema\n    | v.VariantSchema<\n        string,\n        GenericObjectValidationSchema[],\n        GenericValidationError\n      >,\n  Stmt extends PgPreparedQuery<PreparedQueryConfig>,\n>({\n  vSchema,\n  stmtFn,\n  defaultStmt,\n}: {\n  vSchema: VSchema;\n  stmtFn: ReturnType<typeof createStmtFn<Stmt>>;\n  defaultStmt?: ReturnType<ReturnType<typeof createStmtFn<Stmt>>>;\n}) {\n  return async (\n    input: v.InferInput<typeof vSchema>,\n    viaTx?: { tx: Tx; label: string }\n  ) => {\n    const stmt = viaTx\n      ? stmtFn(viaTx.tx, viaTx.label)\n      : (defaultStmt ?? stmtFn(db));\n\n    const data = await stmt.execute(v.parse(vSchema, input));\n\n    return data as Awaited<ReturnType<Stmt[\"execute\"]>>;\n  };\n}\n\n/**\n * Convenience function to reduce boilerplate for writing functions that archives rows for a given table\n *\n * Creates a transaction that confirms the row(s) exists, appends the existing data to an archive table, processes given cascades, and finally removes the row(s)\n *\n * The function returned automatically handles typing for the input based on the select function provided and\n * can extend an external transaction to the query if necessary\n */\nexport function createArchiveFn<T extends Record<string, string | bigint>>({\n  selectFn,\n  activeTable,\n  archiveTable,\n  selectBy = \"id\",\n  cascades,\n}: {\n  selectFn: (input: T, viaTx?: { tx: Tx; label: string }) => Promise<unknown>;\n  activeTable: PgTable & Record<keyof T, PgColumn>;\n  archiveTable: PgTable;\n  selectBy?: keyof T;\n  cascades?: (tx: Tx, selector: T[keyof T]) => Promise<unknown>[];\n}) {\n  return (input: Parameters<typeof selectFn>[0], externalTx?: Tx) => {\n    const _archive = async (tx: Tx) => {\n      // Find the existing row data\n      const rowData = (await selectFn(input, {\n        tx,\n        label: \"archive\",\n      })) as Record<string, unknown>[];\n\n      // Throw an error if data isn't found\n      if (!rowData.length)\n        throw new Error(\n          `ARCHIVE ERROR: CANNOT FIND ROW WHERE ${String(selectBy)} = ${input[selectBy]}`\n        );\n\n      const selector = input[selectBy];\n\n      // Insert the data into the archive table\n      await tx\n        .insert(archiveTable)\n        .values(rowData.map((row) => ({ ...row, [selectBy]: selector })));\n\n      // Process cascades concurrently\n      if (cascades) await Promise.all(cascades(tx, selector));\n\n      // Delete the row data from the active table\n      await tx.delete(activeTable).where(eq(activeTable[selectBy], selector));\n    };\n\n    // Process with an external transaction if it exists\n    if (externalTx) return _archive(externalTx);\n\n    // Process with a newly generated transaction\n    return db.transaction((tx) => _archive(tx));\n  };\n}\n",
+      "type": "registry:lib",
+      "target": "db/helpers/funcs.ts"
+    },
+    {
+      "path": "modules/core/helpers/types.ts",
+      "content": "import type { db } from \"@/modules/core/index\";\n\n/** Drizzle Postgres Transaction objecct type alias for convenience */\nexport type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];\n\n/** Reference for running a query with the normal db object or a transaction object */\nexport type QueryExecutor = typeof db | Tx;\n",
+      "type": "registry:lib",
+      "target": "db/helpers/types.ts"
+    },
+    {
+      "path": "modules/core/models/activities/cascades.ts",
+      "content": "import { createArchiveFn } from \"@/modules/core/helpers/funcs\";\n\nimport * as queries from \"@/modules/core/models/activities/queries\";\nimport {\n  activities,\n  activitiesArchive,\n} from \"@/modules/core/models/activities/schemas\";\n\n/** Adds given id to the activitiesArchive, handles related cascades, and removes it from activities */\nexport const archive = createArchiveFn({\n  selectFn: queries.select,\n  activeTable: activities,\n  archiveTable: activitiesArchive,\n});\n",
+      "type": "registry:lib",
+      "target": "db/models/activities/cascades.ts"
+    },
+    {
+      "path": "modules/core/models/activities/queries.ts",
+      "content": "import { eq, getTableColumns, sql } from \"drizzle-orm\";\n\nimport { createQueryFn, createStmtFn } from \"@/modules/core/helpers/funcs\";\n\nimport { activities } from \"@/modules/core/models/activities/schemas\";\nimport * as V from \"@/modules/core/models/activities/validations\";\n\n//// PRIMITIVES ////\n\nconst {\n  id,\n  failureCause,\n  label: labelCol,\n  meta,\n  success,\n  userId,\n  usersArchiveId,\n  timestamp,\n} = getTableColumns(activities);\n\n//// INSERT ////\n\nconst insertStmt = createStmtFn((qx, label = \"\") =>\n  qx\n    .insert(activities)\n    .values({\n      userId: sql.placeholder(\"userId\"),\n      success: sql.placeholder(\"success\"),\n      label: sql.placeholder(\"label\"),\n      failureCause: sql.placeholder(\"failureCause\"),\n      meta: sql.placeholder(\"meta\"),\n    })\n    .returning({ id })\n    .prepare(`activity_insert_${label}`)\n);\n\nexport const insert = createQueryFn({ vSchema: V.Insert, stmtFn: insertStmt });\n\n//// SELECT ////\n\nconst selectStmt = createStmtFn((qx, label) =>\n  qx\n    .select({\n      failureCause,\n      label: labelCol,\n      meta,\n      success,\n      userId,\n      usersArchiveId,\n      timestamp,\n    })\n    .from(activities)\n    .where(eq(id, sql.placeholder(\"id\")))\n    .limit(1)\n    .prepare(`activity_select_${label}`)\n);\n\nexport const select = createQueryFn({ vSchema: V.Select, stmtFn: selectStmt });\n",
+      "type": "registry:lib",
+      "target": "db/models/activities/queries.ts"
+    },
+    {
+      "path": "modules/core/models/activities/schemas.ts",
+      "content": "import {\n  boolean,\n  index,\n  jsonb,\n  pgTable,\n  text,\n  uuid,\n} from \"drizzle-orm/pg-core\";\n\nimport { id, timestamp, archivedAt } from \"@/modules/core/helpers/cols\";\nimport { users, usersArchive } from \"@/modules/core/models/users/schemas\";\n\nconst activitiesBaseCols = {\n  userId: uuid(\"user_id\").references(() => users.id),\n  usersArchiveId: uuid(\"users_archive_id\").references(() => usersArchive.id),\n  label: text(\"label\").notNull(), // Could be an enum, but it gets difficult to manage as ops are added\n  success: boolean(\"success\").notNull(),\n  failureCause: text(\"failure_cause\"), // Could be an enum, but it gets difficult to manage as ops are added\n  meta: jsonb(\"meta\"),\n};\n\nexport const activities = pgTable(\n  \"activities\",\n  {\n    ...activitiesBaseCols,\n    id: id.generatedAlwaysAsIdentity(),\n    timestamp: timestamp.defaultNow(),\n  },\n  (table) => [index().on(table.timestamp)]\n);\n\n/**\n * Used to preserve relations while keep the activites table small and efficient\n * @todo set up a cron job to move old activites to the archive automatically\n */\nexport const activitiesArchive = pgTable(\"activities_archive\", {\n  ...activitiesBaseCols,\n  id,\n  timestamp,\n  archivedAt,\n});\n",
+      "type": "registry:lib",
+      "target": "db/models/activities/schemas.ts"
+    },
+    {
+      "path": "modules/core/models/activities/validations.ts",
+      "content": "import { createInsertSchema, createSelectSchema } from \"drizzle-valibot\";\nimport * as v from \"valibot\";\n\nimport { activities } from \"@/modules/core/models/activities/schemas\";\n\n//// PRIMITIVES ////\n\nconst { id } = createSelectSchema(activities).entries;\n\nconst { label, failureCause, meta, userId } =\n  createInsertSchema(activities).entries;\n\n//// INSERT ////\n\nconst insertBaseVariant = {\n  label,\n  userId: v.nullish(v.unwrap(userId), null),\n  meta: v.nullish(v.unwrap(meta), null),\n};\n\nexport const Insert = v.variant(\"success\", [\n  v.object({\n    ...insertBaseVariant,\n    success: v.literal(true),\n    failureCause: v.nullish(v.null(), null),\n  }),\n  /**\n   * You could use another tier of variant schemas keying on the failureCause here.\n   * That's how it was originally written, but it became complicated to update/maintain\n   **/\n  v.object({\n    ...insertBaseVariant,\n    success: v.literal(false),\n    failureCause: v.nonNullish(failureCause),\n  }),\n]);\n\n//// SELECT ////\n\nexport const Select = v.object({ id });\n",
+      "type": "registry:lib",
+      "target": "db/models/activities/validations.ts"
+    },
+    {
+      "path": "modules/core/models/users/cascades.ts",
+      "content": "import { eq } from \"drizzle-orm\";\n\nimport { createArchiveFn } from \"@/modules/core/helpers/funcs\";\nimport { activities } from \"@/modules/core/models/activities/schemas\";\n\nimport * as queries from \"@/modules/core/models/users/queries\";\nimport { users, usersArchive } from \"@/modules/core/models/users/schemas\";\n\n/** Adds given id to the usersArchive, handles related cascades, and removes it from users */\nexport const archive = createArchiveFn({\n  selectFn: queries.select,\n  activeTable: users,\n  archiveTable: usersArchive,\n  cascades: (tx, id) => [\n    tx\n      .update(activities)\n      .set({ usersArchiveId: id, userId: null })\n      .where(eq(activities.userId, id)),\n  ],\n});\n",
+      "type": "registry:lib",
+      "target": "db/models/users/cascades.ts"
+    },
+    {
+      "path": "modules/core/models/users/queries.ts",
+      "content": "import { eq, getTableColumns, sql } from \"drizzle-orm\";\n\nimport { createQueryFn, createStmtFn } from \"@/modules/core/helpers/funcs\";\n\nimport { users } from \"@/modules/core/models/users/schemas\";\nimport * as V from \"@/modules/core/models/users/validations\";\n\n//// PRIMITIVES ////\n\nconst { id } = getTableColumns(users);\n\n//// INSERT ////\n\nconst insertStmt = createStmtFn((qx, label) =>\n  qx.insert(users).values({}).returning().prepare(`user_insert_${label}`)\n);\n\nexport const insert = createQueryFn({ vSchema: V.Insert, stmtFn: insertStmt });\n\n//// SELECT ////\n\nconst selectStmt = createStmtFn((qx, label) =>\n  qx\n    .select()\n    .from(users)\n    .where(eq(id, sql.placeholder(\"id\")))\n    .limit(1)\n    .prepare(`user_select_${label}`)\n);\n\nexport const select = createQueryFn({ vSchema: V.Select, stmtFn: selectStmt });\n",
+      "type": "registry:lib",
+      "target": "db/models/users/queries.ts"
+    },
+    {
+      "path": "modules/core/models/users/schemas.ts",
+      "content": "import { pgTable } from \"drizzle-orm/pg-core\";\n\nimport {\n  archivedAt,\n  createdAt,\n  randomId,\n  updatedAt,\n} from \"@/modules/core/helpers/cols\";\n\nexport const users = pgTable(\"users\", {\n  id: randomId.defaultRandom(),\n  createdAt: createdAt.defaultNow(),\n  updatedAt,\n});\n\nexport const usersArchive = pgTable(\"users_archive\", {\n  id: randomId,\n  createdAt,\n  updatedAt,\n  archivedAt,\n});\n",
+      "type": "registry:lib",
+      "target": "db/models/users/schemas.ts"
+    },
+    {
+      "path": "modules/core/models/users/validations.ts",
+      "content": "import { createSelectSchema } from \"drizzle-valibot\";\nimport * as v from \"valibot\";\n\nimport { users } from \"@/modules/core/models/users/schemas\";\n\n//// PRIMITIVES ////\n\nconst { id } = createSelectSchema(users).entries;\n\n//// INSERT ////\n\nexport const Insert = v.object({});\n\n//// SELECT ////\n\nexport const Select = v.object({ id });\n",
+      "type": "registry:lib",
+      "target": "db/models/users/validations.ts"
+    },
+    {
+      "path": "modules/core/drizzle.config.ts",
+      "content": "import { defineConfig } from \"drizzle-kit\";\n\nconst { DB_URL } = process.env;\nif (!DB_URL) throw new Error(\"Missing db url\");\n\nexport default defineConfig({\n  dialect: \"postgresql\",\n  out: \"./db/migrations\",\n  schema: \"./db/models/**/*(schema|view)s.ts\",\n  dbCredentials: { url: DB_URL },\n  casing: \"snake_case\",\n  // Print all statements\n  verbose: true,\n  // Always ask for confirmation\n  strict: true,\n});\n",
+      "type": "registry:lib",
+      "target": "drizzle.config.ts"
+    },
+    {
+      "path": "modules/core/index.ts",
+      "content": "import { drizzle } from \"drizzle-orm/node-postgres\";\n\nconst { DB_URL } = process.env;\nif (!DB_URL) throw new Error(\"Missing db url\");\n\nexport const db = drizzle({\n  connection: { connectionString: DB_URL },\n  casing: \"snake_case\",\n  // logger: true,\n});\n",
+      "type": "registry:lib",
+      "target": "db/index.ts"
+    }
+  ],
+  "type": "registry:block"
+}
