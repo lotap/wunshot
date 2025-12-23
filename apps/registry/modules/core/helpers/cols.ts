@@ -4,9 +4,7 @@ import { TIMESTAMPTZ_CONFIG } from "./consts";
 
 //// Ids ////
 
-export const id = bigint("id", { mode: "bigint" });
-
-export const randomId = uuid("id");
+export const id = uuid("id");
 
 export const archiveId = bigint("archive_id", { mode: "bigint" })
   .primaryKey()

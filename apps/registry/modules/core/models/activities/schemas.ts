@@ -16,6 +16,7 @@ import {
 } from "@/modules/core/helpers/cols";
 import { users, usersArchive } from "@/modules/core/models/users/schemas";
 
+/** Columns with identical definitions in the active and archive tables */
 const activitiesBaseCols = {
   userId: uuid("user_id").references(() => users.id),
   usersArchiveId: bigint("users_archive_id", { mode: "bigint" }).references(
@@ -27,18 +28,20 @@ const activitiesBaseCols = {
   meta: jsonb("meta"),
 };
 
+/** The active activities table */
 export const activities = pgTable(
   "activities",
   {
     ...activitiesBaseCols,
-    id: id.primaryKey().generatedByDefaultAsIdentity(),
+    // cols with defaults
+    id: id.primaryKey().defaultRandom(),
     timestamp: timestamp.defaultNow(),
   },
   (table) => [index().on(table.timestamp)]
 );
 
 /**
- * Used to preserve relations while keep the activites table small and efficient
+ * The activities archive table. Preserves relations while keeping the activites table small and efficient
  * @todo set up a cron job to move old activites to the archive automatically
  */
 export const activitiesArchive = pgTable("activities_archive", {

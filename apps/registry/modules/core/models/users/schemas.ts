@@ -4,20 +4,28 @@ import {
   archivedAt,
   archiveId,
   createdAt,
-  randomId,
+  id,
   updatedAt,
 } from "@/modules/core/helpers/cols";
 
-export const users = pgTable("users", {
-  id: randomId.primaryKey().defaultRandom(),
-  createdAt: createdAt.defaultNow(),
+/** Columns with identical definitions in the active and archive tables */
+const usersBaseCols = {
   updatedAt,
+};
+
+/** The active users table */
+export const users = pgTable("users", {
+  ...usersBaseCols,
+  // cols with defaults
+  id: id.primaryKey().defaultRandom(),
+  createdAt: createdAt.defaultNow(),
 });
 
+/** The users archive table. Preserves relations while keeping the users table small and efficient */
 export const usersArchive = pgTable("users_archive", {
-  id: randomId,
+  ...usersBaseCols,
+  id,
   createdAt,
-  updatedAt,
   // archive cols
   archiveId,
   archivedAt,
