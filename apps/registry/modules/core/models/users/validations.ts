@@ -5,7 +5,7 @@ import { users } from "./schemas";
 
 //// PRIMITIVES ////
 
-const { id } = createSelectSchema(users).entries;
+const selectPrimitive = createSelectSchema(users).entries;
 
 //// INSERT ////
 
@@ -13,4 +13,4 @@ export const Insert = v.object({});
 
 //// SELECT ////
 
-export const Select = v.object({ id });
+export const Select = v.object({ id: selectPrimitive.id });

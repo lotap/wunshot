@@ -5,17 +5,16 @@ import { activities } from "./schemas";
 
 //// PRIMITIVES ////
 
-const { id } = createSelectSchema(activities).entries;
+const insertPrimitive = createInsertSchema(activities).entries;
 
-const { label, failureCause, meta, userId } =
-  createInsertSchema(activities).entries;
+const selectPrimitive = createSelectSchema(activities).entries;
 
 //// INSERT ////
 
 const insertBaseVariant = {
-  label,
-  userId: v.nullish(v.unwrap(userId), null),
-  meta: v.nullish(v.unwrap(meta), null),
+  label: insertPrimitive.label,
+  userId: v.nullish(v.unwrap(insertPrimitive.userId), null),
+  meta: v.nullish(v.unwrap(insertPrimitive.meta), null),
 };
 
 export const Insert = v.variant("success", [
@@ -31,10 +30,10 @@ export const Insert = v.variant("success", [
   v.object({
     ...insertBaseVariant,
     success: v.literal(false),
-    failureCause: v.nonNullish(failureCause),
+    failureCause: v.nonNullish(insertPrimitive.failureCause),
   }),
 ]);
 
 //// SELECT ////
 
-export const Select = v.object({ id });
+export const Select = v.object({ id: selectPrimitive.id });
