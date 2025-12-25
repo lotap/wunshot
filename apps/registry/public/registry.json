@@ -9,12 +9,8 @@
       "title": "Init",
       "description": "Initialize your wunshot project",
       "dependencies": ["drizzle-orm", "pg", "valibot", "drizzle-valibot"],
+      "devDependencies": ["@types/pg", "drizzle-kit"],
       "files": [
-        {
-          "path": "modules/core/helpers/cols.ts",
-          "type": "registry:lib",
-          "target": "db/helpers/cols.ts"
-        },
         {
           "path": "modules/core/helpers/consts.ts",
           "type": "registry:lib",
@@ -24,6 +20,11 @@
           "path": "modules/core/helpers/funcs.ts",
           "type": "registry:lib",
           "target": "db/helpers/funcs.ts"
+        },
+        {
+          "path": "modules/core/helpers/tables.ts",
+          "type": "registry:lib",
+          "target": "db/helpers/tables.ts"
         },
         {
           "path": "modules/core/helpers/types.ts",

@@ -12,11 +12,6 @@
       "devDependencies": ["@types/pg", "drizzle-kit"],
       "files": [
         {
-          "path": "modules/core/helpers/cols.ts",
-          "type": "registry:lib",
-          "target": "db/helpers/cols.ts"
-        },
-        {
           "path": "modules/core/helpers/consts.ts",
           "type": "registry:lib",
           "target": "db/helpers/consts.ts"

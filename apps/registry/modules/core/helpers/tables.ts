@@ -4,20 +4,16 @@ import type {
   ColumnDataType,
 } from "drizzle-orm";
 import {
+  bigint,
   pgTable,
+  timestamp,
+  uuid,
   type ExtraConfigColumn,
   type PgColumnBuilderBase,
   type PgTableExtraConfigValue,
 } from "drizzle-orm/pg-core";
 
-import {
-  id,
-  createdAt,
-  updatedAt,
-  timestamp,
-  archiveId,
-  archivedAt,
-} from "@/modules/core/helpers/cols";
+import { TIMESTAMPTZ_CONFIG } from "./consts";
 
 type Columns = Record<
   string,
@@ -34,9 +30,9 @@ export function activeTable<T extends Columns>(
   extraConfig?: ExtraConfig
 ) {
   const defaultCols = {
-    id: id.primaryKey().defaultRandom(),
-    createdAt: createdAt.defaultNow(),
-    updatedAt: updatedAt.defaultNow(),
+    id: uuid().primaryKey().defaultRandom(),
+    createdAt: timestamp(TIMESTAMPTZ_CONFIG).defaultNow(),
+    updatedAt: timestamp(TIMESTAMPTZ_CONFIG).defaultNow(),
   };
   const cols = {
     ...defaultCols,
@@ -52,11 +48,13 @@ export function archiveTable<T extends Columns>(
   extraConfig?: ExtraConfig
 ) {
   const defaultCols = {
-    id,
-    createdAt,
-    updatedAt,
-    archiveId,
-    archivedAt,
+    id: uuid().notNull(),
+    createdAt: timestamp(TIMESTAMPTZ_CONFIG).notNull(),
+    updatedAt: timestamp(TIMESTAMPTZ_CONFIG).notNull(),
+    archiveId: bigint("archive_id", { mode: "bigint" })
+      .primaryKey()
+      .generatedByDefaultAsIdentity(),
+    archivedAt: timestamp(TIMESTAMPTZ_CONFIG).defaultNow(),
   };
   const cols = {
     ...defaultCols,
@@ -72,8 +70,8 @@ export function activeLogTable<T extends Columns>(
   extraConfig?: ExtraConfig
 ) {
   const defaultCols = {
-    id: id.primaryKey().defaultRandom(),
-    timestamp: timestamp.defaultNow(),
+    id: uuid().primaryKey().defaultRandom(),
+    timestamp: timestamp(TIMESTAMPTZ_CONFIG).defaultNow(),
   };
   const cols = {
     ...defaultCols,
@@ -89,10 +87,12 @@ export function archiveLogTable<T extends Columns>(
   extraConfig?: ExtraConfig
 ) {
   const defaultCols = {
-    id,
-    timestamp,
-    archiveId,
-    archivedAt,
+    id: uuid().notNull(),
+    timestamp: timestamp(TIMESTAMPTZ_CONFIG).notNull(),
+    archiveId: bigint("archive_id", { mode: "bigint" })
+      .primaryKey()
+      .generatedByDefaultAsIdentity(),
+    archivedAt: timestamp(TIMESTAMPTZ_CONFIG).defaultNow(),
   };
   const cols = {
     ...defaultCols,

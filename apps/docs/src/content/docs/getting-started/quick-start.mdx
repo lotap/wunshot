@@ -101,11 +101,15 @@ Be aware that the shadcn cli is intended for use with frontend frameworks. It do
 
         </FileTree> */}
 
+    :::danger
+    There is known a bug that `@/db/models/activities/schemas` uses an incorrect import path for the `users` and `usersArchive` schemas. For now, you will need to manually update it to `import { users, usersArchive } from "@/db/models/users/schemas"`.
+    :::
+
     :::tip
     You may need to update the driver based on your database provider. The `node-postgres` driver is used by default. You can configure the driver in `@/db/index.ts`
     :::
 
-1.  Update the location of `drizzle.config.ts` to the root of your project. The shadcn cli will put it in `@/db` by default.
+1.  Update the location of `drizzle.config.ts` to the root of your project. The shadcn cli will put it in `@/db` by default. You may also need to update the paths for `out` and `schema` depending on your setup.
 
 1.  Install dev dependencies
 
