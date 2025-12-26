@@ -1,7 +1,10 @@
-import { activeTable, archiveTable } from "@/modules/core/helpers/tables";
+import {
+  createActiveTable,
+  createArchiveTable,
+} from "@/modules/core/helpers/tables";
 
 /** The active users table */
-export const users = activeTable("users");
+export const activeTable = createActiveTable("users");
 
 /** The users archive table. Preserves relations while keeping the users table small and efficient */
-export const usersArchive = archiveTable("users_archive");
+export const archiveTable = createArchiveTable("users_archive");

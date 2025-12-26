@@ -15,6 +15,11 @@ const {
   success,
   userId,
   usersArchiveId,
+  failedCredential,
+  guestId,
+  guestsArchiveId,
+  ipAddress,
+  weight,
   timestamp,
 } = getTableColumns(activeTable);
 
@@ -29,6 +34,9 @@ const insertStmt = createStmtFn((qx, label = "") =>
       label: sql.placeholder("label"),
       failureCause: sql.placeholder("failureCause"),
       meta: sql.placeholder("meta"),
+      ipAddress: sql.placeholder("ipAddress"),
+      failedCredential: sql.placeholder("failedCredential"),
+      weight: sql.placeholder("weight"),
     })
     .returning({ id })
     .prepare(`activities_insert_${label}`)
@@ -47,6 +55,11 @@ const selectStmt = createStmtFn((qx, label) =>
       success,
       userId,
       usersArchiveId,
+      failedCredential,
+      guestId,
+      guestsArchiveId,
+      ipAddress,
+      weight,
       timestamp,
     })
     .from(activeTable)

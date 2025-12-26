@@ -2,17 +2,17 @@ import { eq, getTableColumns, sql } from "drizzle-orm";
 
 import { createQueryFn, createStmtFn } from "@/modules/core/helpers/funcs";
 
-import { users } from "./schemas";
+import { activeTable } from "./schemas";
 import * as V from "./validations";
 
 //// PRIMITIVES ////
 
-const { id } = getTableColumns(users);
+const { id } = getTableColumns(activeTable);
 
 //// INSERT ////
 
 const insertStmt = createStmtFn((qx, label) =>
-  qx.insert(users).values({}).returning().prepare(`user_insert_${label}`)
+  qx.insert(activeTable).values({}).returning().prepare(`users_insert_${label}`)
 );
 
 export const insert = createQueryFn({ vSchema: V.Insert, stmtFn: insertStmt });
@@ -22,10 +22,10 @@ export const insert = createQueryFn({ vSchema: V.Insert, stmtFn: insertStmt });
 const selectStmt = createStmtFn((qx, label) =>
   qx
     .select()
-    .from(users)
+    .from(activeTable)
     .where(eq(id, sql.placeholder("id")))
     .limit(1)
-    .prepare(`user_select_${label}`)
+    .prepare(`users_select_${label}`)
 );
 
 export const select = createQueryFn({ vSchema: V.Select, stmtFn: selectStmt });

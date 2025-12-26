@@ -13,7 +13,7 @@ import {
   type PgTableExtraConfigValue,
 } from "drizzle-orm/pg-core";
 
-import { TIMESTAMPTZ_CONFIG } from "./consts";
+import { ARCHIVE_ID_CONFIG, TIMESTAMPTZ_CONFIG } from "./consts";
 
 type Columns = Record<
   string,
@@ -24,7 +24,7 @@ type ExtraConfig = (self: {
   [x: string]: ExtraConfigColumn<ColumnBaseConfig<ColumnDataType, string>>;
 }) => PgTableExtraConfigValue[];
 
-export function activeTable<T extends Columns>(
+export function createActiveTable<T extends Columns>(
   name: string,
   columns?: T,
   extraConfig?: ExtraConfig
@@ -42,7 +42,7 @@ export function activeTable<T extends Columns>(
   return pgTable(name, cols, extraConfig);
 }
 
-export function archiveTable<T extends Columns>(
+export function createArchiveTable<T extends Columns>(
   name: string,
   columns?: T,
   extraConfig?: ExtraConfig
@@ -51,7 +51,7 @@ export function archiveTable<T extends Columns>(
     id: uuid().notNull(),
     createdAt: timestamp(TIMESTAMPTZ_CONFIG).notNull(),
     updatedAt: timestamp(TIMESTAMPTZ_CONFIG).notNull(),
-    archiveId: bigint("archive_id", { mode: "bigint" })
+    archiveId: bigint(ARCHIVE_ID_CONFIG)
       .primaryKey()
       .generatedByDefaultAsIdentity(),
     archivedAt: timestamp(TIMESTAMPTZ_CONFIG).defaultNow(),
@@ -64,7 +64,7 @@ export function archiveTable<T extends Columns>(
   return pgTable(name, cols, extraConfig);
 }
 
-export function activeLogTable<T extends Columns>(
+export function createActiveLogTable<T extends Columns>(
   name: string,
   columns?: T,
   extraConfig?: ExtraConfig
@@ -81,7 +81,7 @@ export function activeLogTable<T extends Columns>(
   return pgTable(name, cols, extraConfig);
 }
 
-export function archiveLogTable<T extends Columns>(
+export function createArchiveLogTable<T extends Columns>(
   name: string,
   columns?: T,
   extraConfig?: ExtraConfig
@@ -89,7 +89,7 @@ export function archiveLogTable<T extends Columns>(
   const defaultCols = {
     id: uuid().notNull(),
     timestamp: timestamp(TIMESTAMPTZ_CONFIG).notNull(),
-    archiveId: bigint("archive_id", { mode: "bigint" })
+    archiveId: bigint(ARCHIVE_ID_CONFIG)
       .primaryKey()
       .generatedByDefaultAsIdentity(),
     archivedAt: timestamp(TIMESTAMPTZ_CONFIG).defaultNow(),

@@ -1,11 +1,11 @@
 import { createSelectSchema } from "drizzle-valibot";
 import * as v from "valibot";
 
-import { users } from "./schemas";
+import { activeTable } from "./schemas";
 
 //// PRIMITIVES ////
 
-const selectPrimitive = createSelectSchema(users).entries;
+const selectPrimitive = createSelectSchema(activeTable).entries;
 
 //// INSERT ////
 
