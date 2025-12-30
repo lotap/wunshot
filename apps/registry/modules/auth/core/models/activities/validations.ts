@@ -1,6 +1,8 @@
 import { createInsertSchema, createSelectSchema } from "drizzle-valibot";
 import * as v from "valibot";
 
+import { FailedCredential } from "@/modules/auth/core/models/activities---bans/validators";
+
 import { activeTable } from "./schemas";
 
 //// PRIMITIVES ////
@@ -36,7 +38,7 @@ export const Insert = v.variant("success", [
     ...insertBaseVariant,
     success: v.literal(false),
     failureCause: v.nonNullish(insertPrimitive.failureCause),
-    failedCredential: insertPrimitive.failedCredential,
+    failedCredential: FailedCredential,
   }),
 ]);
 

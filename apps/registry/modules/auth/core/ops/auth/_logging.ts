@@ -7,10 +7,6 @@ import * as activitiesBansQueries from "@/modules/auth/core/models/activities---
 import * as bansQueries from "@/modules/auth/core/models/bans/queries";
 import type { Insert as BansInsert } from "@/modules/auth/core/models/bans/validations";
 
-// import { appendBanActivities, bulkInsertBans } from "#/models/bans/queries";
-// import { type InsertBan } from "#/models/bans/validations";
-// import { selectActiveBansAndExcessiveActivitiesByTargets } from "#/models/activities--bans/queries";
-
 import { calculatePenaltyTime } from "./_calc-penalty-time";
 
 /** Prints an error to the console with some basic style formatting */
@@ -97,10 +93,11 @@ async function logActivityAndHandleBans(
   }
 }
 
-type InsertActivityInput = InferInput<typeof ActivitiesInsert>;
+type ActivityInsertInput = InferInput<typeof ActivitiesInsert>;
 
 /**
  * Extends error to include an activity property.
+ * The activity property includes data used to insert a row into the activities table
  * It is intended to be processed by {@link logFailedActivity} after being caught
  */
 export class ActivityError<M extends string> extends Error {
@@ -111,7 +108,7 @@ export class ActivityError<M extends string> extends Error {
     message = "Something went wrong" as M,
   }: {
     activity: Omit<
-      Exclude<InsertActivityInput, { success: true }>,
+      Exclude<ActivityInsertInput, { success: true }>,
       "label" | "success" | "ipAddress"
     > & { weight: number };
     message?: M;
@@ -131,25 +128,28 @@ async function logFailedActivity({
   ...passThrough
 }: {
   error: unknown;
-  label: InsertActivityInput["label"];
-  ipAddress: string;
+  label: ActivityInsertInput["label"];
+  ipAddress: ActivityInsertInput["ipAddress"];
 }) {
   try {
     if (error instanceof ActivityError) {
       if (process.env.NODE_ENV === "development")
         printError({ error, label: "ACTIVITY" });
+
       return await logActivityAndHandleBans({
         ...error.activity,
         ...passThrough,
         success: false,
-      } as InsertActivityInput);
+      } as ActivityInsertInput);
     } else {
       if (process.env.NODE_ENV === "development")
         printError({ error, label: "UNKNOWN" });
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { stack, ...errorProps } = serializeError(error) as {
-        [x: string]: unknown;
-      };
+      const { stack, ...errorProps } = serializeError(error) as Record<
+        string,
+        unknown
+      >;
+
       return await logActivityAndHandleBans({
         ...passThrough,
         success: false,
@@ -161,6 +161,7 @@ async function logFailedActivity({
   } catch (error) {
     /**
      * DANGER: NOT SUITED FOR PRODUCTION. UNHANDLED ERRORS SHOULD BE REPORTED/STORED SOMEWHERE
+     * @todo add production logging service
      * If adding to activities_log fails, print the error to the console
      * this is a last-ditch attempt to capture an error
      */
@@ -170,7 +171,7 @@ async function logFailedActivity({
 
 /** Logs given activity as a success */
 async function logSuccessfulActivity(
-  input: Omit<Extract<InsertActivityInput, { success: true }>, "success">
+  input: Omit<Extract<ActivityInsertInput, { success: true }>, "success">
 ) {
   try {
     logActivityAndHandleBans({
@@ -180,6 +181,7 @@ async function logSuccessfulActivity(
   } catch (error) {
     /**
      * DANGER: NOT SUITED FOR PRODUCTION. UNHANDLED ERRORS SHOULD BE REPORTED/STORED SOMEWHERE
+     * @todo add production logging service
      * If adding to activities_log fails, print the error to the console
      * this is a last-ditch attempt to capture an error
      */
@@ -188,12 +190,12 @@ async function logSuccessfulActivity(
 }
 
 /** Apply a given label and ipAddress to {@link logSuccessfulActivity} and {@link logFailedActivity} */
-export function logActivity({
+export function createLogFns({
   label,
   ipAddress,
 }: {
-  label: string;
-  ipAddress: string;
+  label: ActivityInsertInput["label"];
+  ipAddress: ActivityInsertInput["ipAddress"];
 }) {
   return {
     logSuccess: (
