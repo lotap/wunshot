@@ -74,7 +74,7 @@
         {
           "path": "modules/core/drizzle.config.ts",
           "type": "registry:lib",
-          "target": "drizzle.config.ts"
+          "target": "db/drizzle.config.ts"
         },
         {
           "path": "modules/core/index.ts",

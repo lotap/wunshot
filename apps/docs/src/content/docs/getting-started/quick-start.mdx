@@ -109,8 +109,6 @@ Be aware that the shadcn cli is intended for use with frontend frameworks. It do
     You may need to update the driver based on your database provider. The `node-postgres` driver is used by default. You can configure the driver in `@/db/index.ts`
     :::
 
-1.  Update the location of `drizzle.config.ts` to the root of your project. The shadcn cli will put it in `@/db` by default. You may also need to update the paths for `out` and `schema` depending on your setup.
-
 1.  Install dev dependencies
 
     <Tabs syncKey="packageManager">
@@ -160,8 +158,8 @@ Be aware that the shadcn cli is intended for use with frontend frameworks. It do
           // ...
           "scripts": {
             // ...
-            "db": "drizzle-kit",
-            "db:drop": "pnpm run db -- drop",
+            "db": "drizzle-kit --config ./src/db/drizzle.config.ts",
+            "db:check": "pnpm run db -- check",
             "db:generate": "pnpm run db -- generate",
             "db:migrate": "pnpm run db -- migrate",
             "db:push": "pnpm run db -- push",
@@ -180,8 +178,8 @@ Be aware that the shadcn cli is intended for use with frontend frameworks. It do
           // ...
           "scripts": {
             // ...
-            "db": "drizzle-kit",
-            "db:drop": "npm run db -- drop",
+            "db": "drizzle-kit --config ./src/db/drizzle.config.ts",
+            "db:check": "pnpm run db -- check",
             "db:generate": "npm run db -- generate",
             "db:migrate": "npm run db -- migrate",
             "db:push": "npm run db -- push",
@@ -200,8 +198,8 @@ Be aware that the shadcn cli is intended for use with frontend frameworks. It do
           // ...
           "scripts": {
             // ...
-            "db": "drizzle-kit",
-            "db:drop": "yarn run db -- drop",
+            "db": "drizzle-kit --config ./src/db/drizzle.config.ts",
+            "db:check": "pnpm run db -- check",
             "db:generate": "yarn run db -- generate",
             "db:migrate": "yarn run db -- migrate",
             "db:push": "yarn run db -- push",
@@ -220,8 +218,8 @@ Be aware that the shadcn cli is intended for use with frontend frameworks. It do
           // ...
           "scripts": {
             // ...
-            "db": "bun run --bun drizzle-kit",
-            "db:drop": "bun run db -- drop",
+            "db": "bun run --bun drizzle-kit --config ./src/db/drizzle.config.ts",
+            "db:check": "pnpm run db -- check",
             "db:generate": "bun run db -- generate",
             "db:migrate": "bun run db -- migrate",
             "db:push": "bun run db -- push",
