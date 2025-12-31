@@ -2,7 +2,7 @@ import { serializeError } from "serialize-error";
 
 import { db } from "@/modules/core";
 import * as sessionsQueries from "@/modules/auth/core/models/sessions/queries";
-import { withSafeReturn } from "@/modules/auth/core/ops/auth/_safe-return";
+import { createOpsFn } from "@/modules/auth/core/ops/auth/_safe-return";
 
 import { generateAccessToken } from "./_access-token";
 import { verifyTarget } from "./_hashing";
@@ -138,7 +138,7 @@ async function _refresh({
   } as const;
 }
 
-export const refresh = withSafeReturn({
+export const refresh = createOpsFn({
   fn: _refresh,
   label: "AUTH_REFRESH",
   failureOutputMessages,

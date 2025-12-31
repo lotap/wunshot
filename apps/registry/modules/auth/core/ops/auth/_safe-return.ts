@@ -7,11 +7,11 @@ type OpsFailure<Message extends string> = {
   message: Message;
 };
 
-export function succeed<Data>(data: Data): OpsSuccess<Data> {
+export function opsSucceed<Data>(data: Data): OpsSuccess<Data> {
   return { success: true, data };
 }
 
-export function fail<Message extends string>(
+export function opsFail<Message extends string>(
   message: Message
 ): OpsFailure<Message> {
   return { success: false, message };
@@ -29,7 +29,11 @@ function isOutputMessage<FailureMessage extends string>(
   return Object.values(failures).includes(message as FailureMessage);
 }
 
-export function withSafeReturn<
+/**
+ * Convenience function to reduce boilerplate writing ops
+ * Automatically handles logging to activities and standardizes the return format
+ */
+export function createOpsFn<
   FnParam extends Record<string, unknown>,
   Data extends Partial<
     Parameters<ReturnType<typeof createLogFns>["logSuccess"]>[0]
@@ -73,13 +77,13 @@ export function withSafeReturn<
       } as unknown as FnParam);
       if (logOnSuccess) await logSuccess(data);
 
-      return succeed(data);
+      return opsSucceed(data);
     } catch (error) {
       /** Handle thrown errors by sending them to the activitiesLog */
       if (logOnFailure) await logFailure({ error });
 
       /** Return the status and an error message */
-      return fail(
+      return opsFail(
         error instanceof ActivityError &&
           isOutputMessage(error.message, failureOutputMessages)
           ? error.message

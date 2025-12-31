@@ -1,9 +1,8 @@
 import { serializeError } from "serialize-error";
 
-import { withSafeReturn } from "@/modules/auth/core/ops/auth/_safe-return";
-
 import { extractAccessTokenPayload } from "./_access-token";
 import { ActivityError } from "./_logging";
+import { createOpsFn } from "./_safe-return";
 
 const failureOutputMessages = {
   DEFAULT:
@@ -35,7 +34,7 @@ async function _verifyAccess({ token }: { token: string }) {
  * Verify an access token and return data from its payload
  * Logging success is disabled by default to avoid using any database connections
  */
-export const verifyAccess = withSafeReturn({
+export const verifyAccess = createOpsFn({
   fn: _verifyAccess,
   label: "AUTH_VERIFY_ACCESS",
   failureOutputMessages,
